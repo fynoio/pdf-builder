@@ -1,0 +1,73 @@
+{
+  "name": "lexical-playground",
+  "version": "0.41.0",
+  "type": "module",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./dist/lexical-playground.css": "./dist/lexical-playground.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite --host --port 3000",
+    "build": "vite build",
+    "preview": "vite preview --port 4000 --host"
+  },
+  "dependencies": {
+    "@atlaskit/drag-and-drop-indicator": "^0.11.1",
+    "@atlaskit/pragmatic-drag-and-drop": "^1.7.7",
+    "@excalidraw/excalidraw": "^0.18.0",
+    "@floating-ui/react": "^0.27.16",
+    "@lexical/clipboard": "^0.41.0",
+    "@lexical/code": "^0.41.0",
+    "@lexical/code-shiki": "^0.41.0",
+    "@lexical/file": "^0.41.0",
+    "@lexical/hashtag": "^0.41.0",
+    "@lexical/link": "^0.41.0",
+    "@lexical/list": "^0.41.0",
+    "@lexical/mark": "^0.41.0",
+    "@lexical/overflow": "^0.41.0",
+    "@lexical/plain-text": "^0.41.0",
+    "@lexical/react": "^0.41.0",
+    "@lexical/rich-text": "^0.41.0",
+    "@lexical/selection": "^0.41.0",
+    "@lexical/table": "^0.41.0",
+    "@lexical/utils": "^0.41.0",
+    "date-fns": "^4.1.0",
+    "katex": "^0.16.10",
+    "lexical": "^0.41.0",
+    "lodash-es": "^4.17.21",
+    "prettier": "^3.6.2",
+    "react-day-picker": "^9.7.0",
+    "react-error-boundary": "^6.0.0",
+    "y-websocket": "^1.5.4",
+    "yjs": ">=13.5.42"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-flow-strip-types": "^7.24.7",
+    "@babel/preset-react": "^7.24.7",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@types/lodash-es": "^4.14.182",
+    "@types/node": "^25.3.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^5.0.0",
+    "vite": "^7.1.4"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ]
+}
