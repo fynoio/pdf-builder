@@ -19,7 +19,7 @@
       "import": "./dist/index.es.js",
       "require": "./dist/index.cjs.js"
     },
-    "./dist/lexical-playground.css": "./dist/lexical-playground.css"
+    "./index.css": "./dist/pdf-builder.css"
   },
   "files": [
     "dist"
