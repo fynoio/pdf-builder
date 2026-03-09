@@ -1,10 +1,19 @@
 {
   "name": "@fyno/pdf-builder",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fynoio/pdf-builder.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.es.js",
