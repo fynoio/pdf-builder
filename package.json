@@ -1,6 +1,6 @@
 {
-  "name": "lexical-playground",
-  "version": "0.41.0",
+  "name": "@fyno/pdf-builder",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
