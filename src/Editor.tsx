@@ -193,11 +193,11 @@ export default function Editor(): JSX.Element {
         <SpeechToTextPlugin />
         <AutoLinkPlugin />
         <DateTimePlugin />
-        {!(isCollab && useCollabV2) && (
+        {/* {!(isCollab && useCollabV2) && (
           <CommentPlugin
             providerFactory={isCollab ? createWebsocketProvider : undefined}
           />
-        )}
+        )} */}
         {isRichText ? (
           <>
             {isCollab ? (
@@ -311,10 +311,10 @@ export default function Editor(): JSX.Element {
         <div>{showTableOfContents && <TableOfContentsPlugin />}</div>
         {shouldUseLexicalContextMenu && <ContextMenuPlugin />}
         {shouldAllowHighlightingWithBrackets && <SpecialTextPlugin />}
-        <ActionsPlugin
+        {/* <ActionsPlugin
           shouldPreserveNewLinesInMarkdown={shouldPreserveNewLinesInMarkdown}
           useCollabV2={useCollabV2}
-        />
+        /> */}
       </div>
       {showTreeView && <TreeViewPlugin />}
     </>
