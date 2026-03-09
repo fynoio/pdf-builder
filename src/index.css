@@ -6,9 +6,9 @@
  *
  */
 
-@import 'https://fonts.googleapis.com/css?family=Reenie+Beanie';
+@import "https://fonts.googleapis.com/css?family=Reenie+Beanie";
 
-body {
+/* body {
   margin: 0;
   font-family:
     system-ui,
@@ -20,7 +20,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #eee;
   padding: 0 20px;
-}
+} */
 
 header {
   max-width: 580px;
@@ -50,9 +50,9 @@ header h1 {
 }
 
 .editor-shell {
-  margin: 20px auto;
+  /* margin: 20px auto; */
+  /* max-width: 1100px; */
   border-radius: 2px;
-  max-width: 1100px;
   color: #000;
   position: relative;
   line-height: 1.7;
@@ -148,7 +148,7 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .editor-dev-button::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 10px;
   right: 10px;
@@ -196,7 +196,7 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .test-recorder-button::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 8px;
   right: 8px;
@@ -1006,11 +1006,11 @@ i.page-break,
   transition: transform 0.2s;
 }
 
-.switch button[aria-checked='true'] {
+.switch button[aria-checked="true"] {
   background-color: rgb(24, 119, 242);
 }
 
-.switch button[aria-checked='true'] span {
+.switch button[aria-checked="true"] span {
   transform: translateX(20px);
 }
 
@@ -1572,7 +1572,7 @@ button.toolbar-item.active i {
   padding: 20px 10px;
   position: relative;
   border: 1px solid #e8e8e8;
-  font-family: 'Reenie Beanie';
+  font-family: "Reenie Beanie";
   font-size: 24px;
   border-bottom-right-radius: 60px 5px;
   display: block;
@@ -1580,7 +1580,7 @@ button.toolbar-item.active i {
 }
 
 .sticky-note:after {
-  content: '';
+  content: "";
   position: absolute;
   z-index: -1;
   right: -0px;
