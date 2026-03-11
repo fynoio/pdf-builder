@@ -6,48 +6,86 @@
  *
  */
 
-import { DecoratorTextExtension } from "@lexical/extension";
-import { $createLinkNode } from "@lexical/link";
-import { $createListItemNode, $createListNode } from "@lexical/list";
-import { LexicalCollaboration } from "@lexical/react/LexicalCollaborationContext";
-import { LexicalExtensionComposer } from "@lexical/react/LexicalExtensionComposer";
-import { $createHeadingNode, $createQuoteNode } from "@lexical/rich-text";
+import { DecoratorTextExtension } from '@lexical/extension';
+import { $createLinkNode } from '@lexical/link';
+import { $createListItemNode, $createListNode } from '@lexical/list';
+import { LexicalCollaboration } from '@lexical/react/LexicalCollaborationContext';
+import { LexicalExtensionComposer } from '@lexical/react/LexicalExtensionComposer';
+import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import {
   $createParagraphNode,
   $createTextNode,
   $getRoot,
   defineExtension,
-} from "lexical";
-import { type JSX, useMemo } from "react";
+  LexicalEditor,
+} from 'lexical';
+import { forwardRef, type JSX, useImperativeHandle, useMemo } from 'react';
 
-import { isDevPlayground } from "./appSettings";
-import { buildHTMLConfig } from "./buildHTMLConfig";
-import { FlashMessageContext } from "./context/FlashMessageContext";
-import { SettingsContext, useSettings } from "./context/SettingsContext";
-import { SharedHistoryContext } from "./context/SharedHistoryContext";
-import { ToolbarContext } from "./context/ToolbarContext";
-import Editor from "./Editor";
-import logo from "./images/logo.svg";
-import PlaygroundNodes from "./nodes/PlaygroundNodes";
-import DocsPlugin from "./plugins/DocsPlugin";
-import PasteLogPlugin from "./plugins/PasteLogPlugin";
-import { TableContext } from "./plugins/TablePlugin";
-import TestRecorderPlugin from "./plugins/TestRecorderPlugin";
-import TypingPerfPlugin from "./plugins/TypingPerfPlugin";
-import Settings from "./Settings";
-import PlaygroundEditorTheme from "./themes/PlaygroundEditorTheme";
+import { buildHTMLConfig } from './buildHTMLConfig';
+import { FlashMessageContext } from './context/FlashMessageContext';
+import { SettingsContext, useSettings } from './context/SettingsContext';
+import { SharedHistoryContext } from './context/SharedHistoryContext';
+import { ToolbarContext } from './context/ToolbarContext';
+import Editor from './Editor';
+import PlaygroundNodes from './nodes/PlaygroundNodes';
+import { TableContext } from './plugins/TablePlugin';
+import TypingPerfPlugin from './plugins/TypingPerfPlugin';
+import PlaygroundEditorTheme from './themes/PlaygroundEditorTheme';
+import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 
-import "./index.css";
+import './index.css';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
-console.warn(
-  "If you are profiling the playground app, please ensure you turn off the debug view. You can disable it by pressing on the settings control in the bottom-left of your screen and toggling the debug view setting.",
-);
+/**
+ * Interface for the exported Ref handle.
+ * Export this so it can be used in the host application for Type Safety.
+ */
+export interface PlaygroundRef {
+  getHtml: () => string;
+  getJson: () => string;
+  getEditor: () => LexicalEditor;
+}
+
+/**
+ * NEW: Interface for the Component Props.
+ * This tells TypeScript exactly what the Next.js app is allowed to pass in.
+ */
+export interface PlaygroundProps {
+  initialHtml?: string;
+}
+
+interface AppProps extends PlaygroundProps {
+  imperativeRef: React.Ref<PlaygroundRef>;
+}
+
+/**
+ * Internal Plugin to bridge the Lexical Context to the Forwarded Ref
+ */
+const ImperativeHandlePlugin = forwardRef<PlaygroundRef>((_, ref) => {
+  const [editor] = useLexicalComposerContext();
+
+  useImperativeHandle(ref, () => ({
+    getHtml: () => {
+      let html = '';
+      editor.getEditorState().read(() => {
+        html = $generateHtmlFromNodes(editor, null);
+      });
+      return html;
+    },
+    getJson: () => {
+      return JSON.stringify(editor.getEditorState().toJSON());
+    },
+    getEditor: () => editor,
+  }));
+
+  return null;
+});
 
 function $prepopulatedRichText() {
   const root = $getRoot();
   if (root.getFirstChild() === null) {
-    const heading = $createHeadingNode("h1");
-    heading.append($createTextNode("Welcome to the playground"));
+    const heading = $createHeadingNode('h1');
+    heading.append($createTextNode('Welcome to the playground'));
     root.append(heading);
     const quote = $createQuoteNode();
     quote.append(
@@ -59,20 +97,20 @@ function $prepopulatedRichText() {
     root.append(quote);
     const paragraph = $createParagraphNode();
     paragraph.append(
-      $createTextNode("The playground is a demo environment built with "),
-      $createTextNode("@lexical/react").toggleFormat("code"),
-      $createTextNode("."),
-      $createTextNode(" Try typing in "),
-      $createTextNode("some text").toggleFormat("bold"),
-      $createTextNode(" with "),
-      $createTextNode("different").toggleFormat("italic"),
-      $createTextNode(" formats."),
+      $createTextNode('The playground is a demo environment built with '),
+      $createTextNode('@lexical/react').toggleFormat('code'),
+      $createTextNode('.'),
+      $createTextNode(' Try typing in '),
+      $createTextNode('some text').toggleFormat('bold'),
+      $createTextNode(' with '),
+      $createTextNode('different').toggleFormat('italic'),
+      $createTextNode(' formats.'),
     );
     root.append(paragraph);
     const paragraph2 = $createParagraphNode();
     paragraph2.append(
       $createTextNode(
-        "Make sure to check out the various plugins in the toolbar. You can also use #hashtags or @-mentions too!",
+        'Make sure to check out the various plugins in the toolbar. You can also use #hashtags or @-mentions too!',
       ),
     );
     root.append(paragraph2);
@@ -81,33 +119,33 @@ function $prepopulatedRichText() {
       $createTextNode(`If you'd like to find out more about Lexical, you can:`),
     );
     root.append(paragraph3);
-    const list = $createListNode("bullet");
+    const list = $createListNode('bullet');
     list.append(
       $createListItemNode().append(
         $createTextNode(`Visit the `),
-        $createLinkNode("https://lexical.dev/").append(
-          $createTextNode("Lexical website"),
+        $createLinkNode('https://lexical.dev/').append(
+          $createTextNode('Lexical website'),
         ),
         $createTextNode(` for documentation and more information.`),
       ),
       $createListItemNode().append(
         $createTextNode(`Check out the code on our `),
-        $createLinkNode("https://github.com/facebook/lexical").append(
-          $createTextNode("GitHub repository"),
+        $createLinkNode('https://github.com/facebook/lexical').append(
+          $createTextNode('GitHub repository'),
         ),
         $createTextNode(`.`),
       ),
       $createListItemNode().append(
         $createTextNode(`Playground code can be found `),
         $createLinkNode(
-          "https://github.com/facebook/lexical/tree/main/packages/lexical-playground",
-        ).append($createTextNode("here")),
+          'https://github.com/facebook/lexical/tree/main/packages/lexical-playground',
+        ).append($createTextNode('here')),
         $createTextNode(`.`),
       ),
       $createListItemNode().append(
         $createTextNode(`Join our `),
-        $createLinkNode("https://discord.com/invite/KmG4wQnnD9").append(
-          $createTextNode("Discord Server"),
+        $createLinkNode('https://discord.com/invite/KmG4wQnnD9').append(
+          $createTextNode('Discord Server'),
         ),
         $createTextNode(` and chat with the team.`),
       ),
@@ -123,7 +161,18 @@ function $prepopulatedRichText() {
   }
 }
 
-function App(): JSX.Element {
+// Inside your component or as a helper
+function $importHTML(editor: LexicalEditor, htmlString: string) {
+  const parser = new DOMParser();
+  const dom = parser.parseFromString(htmlString, 'text/html');
+  const nodes = $generateNodesFromDOM(editor, dom);
+
+  const root = $getRoot();
+  root.clear(); // Remove default paragraph if any
+  root.append(...nodes);
+}
+
+function App({ imperativeRef, initialHtml }: AppProps): JSX.Element {
   const {
     settings: { isCollab, emptyEditor, measureTypingPerf },
   } = useSettings();
@@ -131,15 +180,19 @@ function App(): JSX.Element {
   const app = useMemo(
     () =>
       defineExtension({
-        $initialEditorState: isCollab
-          ? null
-          : emptyEditor
-            ? undefined
-            : $prepopulatedRichText,
+        $initialEditorState: (editor) => {
+          if (isCollab) return;
+
+          if (initialHtml) {
+            $importHTML(editor, initialHtml);
+          } else if (!emptyEditor) {
+            $prepopulatedRichText();
+          }
+        },
         dependencies: [DecoratorTextExtension],
         html: buildHTMLConfig(),
-        name: "@lexical/playground",
-        namespace: "Playground",
+        name: '@fyno/pdf-builder',
+        namespace: 'PDF Builder',
         nodes: PlaygroundNodes,
         theme: PlaygroundEditorTheme,
       }),
@@ -149,6 +202,9 @@ function App(): JSX.Element {
   return (
     <LexicalCollaboration>
       <LexicalExtensionComposer extension={app} contentEditable={null}>
+        {/* Mount the Ref bridge inside the Composer to access the editor context */}
+        <ImperativeHandlePlugin ref={imperativeRef} />
+
         <SharedHistoryContext>
           <TableContext>
             <ToolbarContext>
@@ -164,12 +220,16 @@ function App(): JSX.Element {
   );
 }
 
-export default function PlaygroundApp(): JSX.Element {
-  return (
-    <SettingsContext>
-      <FlashMessageContext>
-        <App />
-      </FlashMessageContext>
-    </SettingsContext>
-  );
-}
+const PlaygroundApp = forwardRef<PlaygroundRef, PlaygroundProps>(
+  (props, ref) => {
+    return (
+      <SettingsContext>
+        <FlashMessageContext>
+          <App {...props} imperativeRef={ref} />
+        </FlashMessageContext>
+      </SettingsContext>
+    );
+  },
+);
+
+export default PlaygroundApp;
