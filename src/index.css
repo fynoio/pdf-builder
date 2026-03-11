@@ -6,7 +6,7 @@
  *
  */
 
-@import "https://fonts.googleapis.com/css?family=Reenie+Beanie";
+@import 'https://fonts.googleapis.com/css?family=Reenie+Beanie';
 
 /* body {
   margin: 0;
@@ -57,6 +57,7 @@ header h1 {
   position: relative;
   line-height: 1.7;
   font-weight: 400;
+  width: 100%;
 }
 
 .editor-shell .editor-container {
@@ -84,7 +85,6 @@ header h1 {
   position: relative;
   outline: 0;
   z-index: 0;
-  resize: vertical;
 }
 
 .editor {
@@ -148,7 +148,7 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .editor-dev-button::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 10px;
   right: 10px;
@@ -196,7 +196,7 @@ pre::-webkit-scrollbar-thumb {
 }
 
 .test-recorder-button::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 8px;
   right: 8px;
@@ -207,11 +207,11 @@ pre::-webkit-scrollbar-thumb {
   filter: invert(1);
 }
 
-#options-button {
+/* #options-button {
   position: fixed;
   left: 20px;
   bottom: 20px;
-}
+} */
 
 #test-recorder-button {
   position: fixed;
@@ -231,9 +231,9 @@ pre::-webkit-scrollbar-thumb {
   bottom: 20px;
 }
 
-#options-button::after {
+/* #options-button::after {
   background-image: url(images/icons/gear.svg);
-}
+} */
 
 #test-recorder-button::after {
   background-image: url(images/icons/journal-code.svg);
@@ -879,7 +879,7 @@ i.page-break,
 }
 
 .icon.paragraph {
-  background-image: url(images/icons/text-paragraph.svg);
+  background-image: url(images/icons/font-family.svg);
 }
 
 .icon.h1 {
@@ -1006,11 +1006,11 @@ i.page-break,
   transition: transform 0.2s;
 }
 
-.switch button[aria-checked="true"] {
+.switch button[aria-checked='true'] {
   background-color: rgb(24, 119, 242);
 }
 
-.switch button[aria-checked="true"] span {
+.switch button[aria-checked='true'] span {
   transform: translateX(20px);
 }
 
@@ -1432,18 +1432,17 @@ button.action-button:disabled {
 
 .toolbar {
   display: flex;
-  margin-bottom: 1px;
   background: #fff;
   padding: 4px;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   vertical-align: middle;
   overflow: auto;
-  height: 36px;
   position: sticky;
   top: 0;
-  z-index: 20;
-  overflow-y: hidden; /* disable vertical scroll*/
+  z-index: 3;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #eee;
 }
 
 .toolbar .toolbar-item:focus {
@@ -1535,8 +1534,8 @@ button.toolbar-item.active i {
 .toolbar i.chevron-down,
 .toolbar-item i.chevron-down {
   margin-top: 3px;
-  width: 16px;
-  height: 16px;
+  width: 8px;
+  height: 8px;
   display: flex;
   user-select: none;
 }
@@ -1572,7 +1571,7 @@ button.toolbar-item.active i {
   padding: 20px 10px;
   position: relative;
   border: 1px solid #e8e8e8;
-  font-family: "Reenie Beanie";
+  font-family: 'Reenie Beanie';
   font-size: 24px;
   border-bottom-right-radius: 60px 5px;
   display: block;
@@ -1580,7 +1579,7 @@ button.toolbar-item.active i {
 }
 
 .sticky-note:after {
-  content: "";
+  content: '';
   position: absolute;
   z-index: -1;
   right: -0px;
