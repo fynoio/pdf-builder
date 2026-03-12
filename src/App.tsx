@@ -19,7 +19,13 @@ import {
   defineExtension,
   LexicalEditor,
 } from 'lexical';
-import { forwardRef, type JSX, useImperativeHandle, useMemo } from 'react';
+import {
+  forwardRef,
+  type JSX,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from 'react';
 
 import { buildHTMLConfig } from './buildHTMLConfig';
 import { FlashMessageContext } from './context/FlashMessageContext';
@@ -35,6 +41,8 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 
 import './index.css';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 
 /**
  * Interface for the exported Ref handle.
@@ -52,6 +60,7 @@ export interface PlaygroundRef {
  */
 export interface PlaygroundProps {
   initialHtml?: string;
+  handleChange?: () => void;
 }
 
 interface AppProps extends PlaygroundProps {
@@ -172,10 +181,16 @@ function $importHTML(editor: LexicalEditor, htmlString: string) {
   root.append(...nodes);
 }
 
-function App({ imperativeRef, initialHtml }: AppProps): JSX.Element {
+function App({
+  imperativeRef,
+  initialHtml,
+  handleChange,
+}: AppProps): JSX.Element {
   const {
     settings: { isCollab, emptyEditor, measureTypingPerf },
   } = useSettings();
+
+  const lastContentRef = useRef<string>('');
 
   const app = useMemo(
     () =>
@@ -185,6 +200,7 @@ function App({ imperativeRef, initialHtml }: AppProps): JSX.Element {
 
           if (initialHtml) {
             $importHTML(editor, initialHtml);
+            lastContentRef.current = initialHtml;
           } else if (!emptyEditor) {
             $prepopulatedRichText();
           }
@@ -202,6 +218,22 @@ function App({ imperativeRef, initialHtml }: AppProps): JSX.Element {
   return (
     <LexicalCollaboration>
       <LexicalExtensionComposer extension={app} contentEditable={null}>
+        <OnChangePlugin
+          onChange={(editorState, editor) => {
+            editorState.read(() => {
+              const currentHtml = $generateHtmlFromNodes(editor, null);
+
+              if (currentHtml !== lastContentRef.current) {
+                lastContentRef.current = currentHtml;
+
+                if (handleChange) {
+                  handleChange();
+                }
+              }
+            });
+          }}
+        />
+
         {/* Mount the Ref bridge inside the Composer to access the editor context */}
         <ImperativeHandlePlugin ref={imperativeRef} />
 
