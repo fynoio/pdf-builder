@@ -67,23 +67,111 @@ interface AppProps extends PlaygroundProps {
   imperativeRef: React.Ref<PlaygroundRef>;
 }
 
+interface ImperativeHandlePluginProps {
+  editorContainerRef: React.RefObject<HTMLDivElement | null>;
+}
+
 /**
  * Internal Plugin to bridge the Lexical Context to the Forwarded Ref
  */
-const ImperativeHandlePlugin = forwardRef<PlaygroundRef>((_, ref) => {
+const ImperativeHandlePlugin = forwardRef<
+  PlaygroundRef,
+  ImperativeHandlePluginProps
+>(({ editorContainerRef }, ref) => {
   const [editor] = useLexicalComposerContext();
 
   useImperativeHandle(ref, () => ({
     getHtml: () => {
-      let html = '';
-      editor.getEditorState().read(() => {
-        html = $generateHtmlFromNodes(editor, null);
-      });
-      return html;
+      let bodyHtml = '';
+
+      try {
+        editor.getEditorState().read(() => {
+          bodyHtml = $generateHtmlFromNodes(editor, null);
+        });
+      } catch {
+        return '';
+      }
+
+      if (!bodyHtml) return '';
+
+      // Collect used classes
+      let usedClasses: Set<string>;
+      try {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = bodyHtml;
+        usedClasses = new Set<string>();
+        tempDiv.querySelectorAll('*').forEach((el: Element) => {
+          el.classList.forEach((cls) => usedClasses.add(cls));
+        });
+      } catch {
+        // If class extraction fails, return html without styles rather than crashing
+        return bodyHtml;
+      }
+
+      // Build CSS only if there are classes to match
+      let relevantCss = '';
+      if (usedClasses.size > 0) {
+        try {
+          const seenRules = new Set<string>();
+          const cssRules: string[] = [];
+
+          for (const sheet of Array.from(document.styleSheets)) {
+            let rules: CSSRuleList;
+            try {
+              rules = sheet.cssRules;
+            } catch {
+              // Cross-origin sheet — skip
+              continue;
+            }
+
+            for (const rule of Array.from(rules)) {
+              if (!(rule instanceof CSSStyleRule)) continue;
+
+              // Skip if already seen
+              if (seenRules.has(rule.cssText)) continue;
+
+              // Extract class names from selector — reuse regex per rule
+              const classesInSelector: string[] = [];
+              const matches = rule.selectorText.matchAll(/\.([a-zA-Z0-9_-]+)/g);
+              for (const m of matches) {
+                classesInSelector.push(m[1]);
+              }
+
+              if (classesInSelector.length === 0) continue;
+
+              // Check if any class is used — exit early on first match
+              const isUsed = classesInSelector.some((cls) =>
+                usedClasses.has(cls),
+              );
+              if (!isUsed) continue;
+
+              seenRules.add(rule.cssText);
+              cssRules.push(rule.cssText);
+            }
+          }
+
+          relevantCss = cssRules.join('\n');
+        } catch {
+          // CSS extraction failed — still return html without styles
+          return `<!DOCTYPE html>
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>${bodyHtml}</body>
+</html>`;
+        }
+      }
+
+      return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    ${relevantCss ? `<style>${relevantCss}</style>` : ''}
+  </head>
+  <body>${bodyHtml}</body>
+</html>`;
     },
-    getJson: () => {
-      return JSON.stringify(editor.getEditorState().toJSON());
-    },
+
+    getJson: () => JSON.stringify(editor.getEditorState().toJSON()),
     getEditor: () => editor,
   }));
 
@@ -191,6 +279,7 @@ function App({
   } = useSettings();
 
   const lastContentRef = useRef<string>('');
+  const editorContainerRef = useRef<HTMLDivElement>(null);
 
   const app = useMemo(
     () =>
@@ -235,13 +324,16 @@ function App({
         />
 
         {/* Mount the Ref bridge inside the Composer to access the editor context */}
-        <ImperativeHandlePlugin ref={imperativeRef} />
+        <ImperativeHandlePlugin
+          ref={imperativeRef}
+          editorContainerRef={editorContainerRef}
+        />
 
         <SharedHistoryContext>
           <TableContext>
             <ToolbarContext>
               <div className="editor-shell">
-                <Editor />
+                <Editor editorContainerRef={editorContainerRef} />
               </div>
               {measureTypingPerf ? <TypingPerfPlugin /> : null}
             </ToolbarContext>
