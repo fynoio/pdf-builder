@@ -39,7 +39,6 @@ import {
 } from './collaboration';
 import { useSettings } from './context/SettingsContext';
 import { useSharedHistoryContext } from './context/SharedHistoryContext';
-import ActionsPlugin from './plugins/ActionsPlugin';
 import AutocompletePlugin from './plugins/AutocompletePlugin';
 import AutoEmbedPlugin from './plugins/AutoEmbedPlugin';
 import AutoLinkPlugin from './plugins/AutoLinkPlugin';
@@ -47,7 +46,6 @@ import CodeActionMenuPlugin from './plugins/CodeActionMenuPlugin';
 import CodeHighlightPrismPlugin from './plugins/CodeHighlightPrismPlugin';
 import CodeHighlightShikiPlugin from './plugins/CodeHighlightShikiPlugin';
 import CollapsiblePlugin from './plugins/CollapsiblePlugin';
-import CommentPlugin from './plugins/CommentPlugin';
 import ComponentPickerPlugin from './plugins/ComponentPickerPlugin';
 import ContextMenuPlugin from './plugins/ContextMenuPlugin';
 import DateTimePlugin from './plugins/DateTimePlugin';
@@ -91,7 +89,13 @@ const skipCollaborationInit =
   // @ts-expect-error
   window.parent != null && window.parent.frames.right === window;
 
-export default function Editor(): JSX.Element {
+interface EditorProps {
+  editorContainerRef: React.RefObject<HTMLDivElement | null>;
+}
+
+export default function Editor({
+  editorContainerRef,
+}: EditorProps): JSX.Element {
   const { historyState } = useSharedHistoryContext();
   const {
     settings: {
@@ -174,6 +178,7 @@ export default function Editor(): JSX.Element {
         />
       )}
       <div
+        ref={editorContainerRef}
         className={`editor-container ${showTreeView ? 'tree-view' : ''} ${
           !isRichText ? 'plain-text' : ''
         }`}

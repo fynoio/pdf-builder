@@ -766,7 +766,7 @@ i.page-break,
 }
 
 .dropdown {
-  z-index: 100;
+  z-index: 1201;
   display: block;
   position: fixed;
   box-shadow:
