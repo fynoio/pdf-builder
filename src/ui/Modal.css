@@ -20,12 +20,12 @@
   background-color: rgba(40, 40, 40, 0.6);
   flex-grow: 0px;
   flex-shrink: 1px;
-  z-index: 100;
+  z-index: 1200;
 }
 .Modal__modal {
   padding: 20px;
   min-height: 100px;
-  min-width: 300px;
+  min-width: 420px;
   display: flex;
   flex-grow: 0px;
   background-color: #fff;
