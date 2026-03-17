@@ -1312,9 +1312,15 @@ export default function ToolbarPlugin({
             </DropDownItem>
           </DropDown>
 
+          <ElementFormatDropdown
+            disabled={!isEditable}
+            value={toolbarState.elementFormat}
+            editor={activeEditor}
+            isRTL={toolbarState.isRTL}
+          />
+
           {canViewerSeeInsertDropdown && (
             <>
-              <Divider />
               <DropDown
                 disabled={!isEditable}
                 buttonClassName="toolbar-item spaced"
@@ -1387,12 +1393,6 @@ export default function ToolbarPlugin({
           )}
         </>
       )}
-      <ElementFormatDropdown
-        disabled={!isEditable}
-        value={toolbarState.elementFormat}
-        editor={activeEditor}
-        isRTL={toolbarState.isRTL}
-      />
 
       {modal}
     </div>
