@@ -328,16 +328,6 @@ function BlockFormatDropDown({
         <span className="shortcut">{SHORTCUTS.BULLET_LIST}</span>
       </DropDownItem>
       <DropDownItem
-        className={'item wide ' + dropDownActiveClass(blockType === 'check')}
-        onClick={() => formatCheckList(editor, blockType)}
-      >
-        <div className="icon-text-container">
-          <i className="icon check-list" />
-          <span className="text">Check List</span>
-        </div>
-        <span className="shortcut">{SHORTCUTS.CHECK_LIST}</span>
-      </DropDownItem>
-      <DropDownItem
         className={'item wide ' + dropDownActiveClass(blockType === 'quote')}
         onClick={() => formatQuote(editor, blockType)}
       >
@@ -346,16 +336,6 @@ function BlockFormatDropDown({
           <span className="text">Quote</span>
         </div>
         <span className="shortcut">{SHORTCUTS.QUOTE}</span>
-      </DropDownItem>
-      <DropDownItem
-        className={'item wide ' + dropDownActiveClass(blockType === 'code')}
-        onClick={() => formatCode(editor, blockType)}
-      >
-        <div className="icon-text-container">
-          <i className="icon code" />
-          <span className="text">Code Block</span>
-        </div>
-        <span className="shortcut">{SHORTCUTS.CODE_BLOCK}</span>
       </DropDownItem>
     </DropDown>
   );
@@ -1233,24 +1213,6 @@ export default function ToolbarPlugin({
               </div>
               <span className="shortcut">{SHORTCUTS.CAPITALIZE}</span>
             </DropDownItem>
-
-            {/* <DropDownItem
-              onClick={(e) =>
-                dispatchFormatTextCommand("strikethrough", isKeyboardInput(e))
-              }
-              className={
-                "item wide " + dropDownActiveClass(toolbarState.isStrikethrough)
-              }
-              title="Strikethrough"
-              aria-label="Format text with a strikethrough"
-            >
-              <div className="icon-text-container">
-                <i className="icon strikethrough" />
-                <span className="text">Strikethrough</span>
-              </div>
-              <span className="shortcut">{SHORTCUTS.STRIKETHROUGH}</span>
-            </DropDownItem> */}
-
             <DropDownItem
               onClick={(e) =>
                 dispatchFormatTextCommand('subscript', isKeyboardInput(e))
@@ -1321,74 +1283,88 @@ export default function ToolbarPlugin({
 
           {canViewerSeeInsertDropdown && (
             <>
-              <DropDown
+              <button
                 disabled={!isEditable}
-                buttonClassName="toolbar-item spaced"
-                buttonLabel="Insert"
-                buttonAriaLabel="Insert specialized editor node"
-                buttonIconClassName="icon plus"
+                onClick={() => {
+                  showModal('Insert Image', (onClose) => (
+                    <InsertImageDialog
+                      activeEditor={activeEditor}
+                      onClose={onClose}
+                    />
+                  ));
+                }}
+                type="button"
+                title={`Image`}
+                aria-label={`Add Image`}
+                className={'toolbar-item spaced '}
               >
-                <DropDownItem
-                  onClick={() =>
-                    dispatchToolbarCommand(INSERT_HORIZONTAL_RULE_COMMAND)
-                  }
-                  className="item"
-                >
-                  <i className="icon horizontal-rule" />
-                  <span className="text">Horizontal Rule</span>
-                </DropDownItem>
-                <DropDownItem
-                  onClick={() => dispatchToolbarCommand(INSERT_PAGE_BREAK)}
-                  className="item"
-                >
-                  <i className="icon page-break" />
-                  <span className="text">Page Break</span>
-                </DropDownItem>
-                <DropDownItem
-                  onClick={() => {
-                    showModal('Insert Image', (onClose) => (
-                      <InsertImageDialog
-                        activeEditor={activeEditor}
-                        onClose={onClose}
-                      />
-                    ));
-                  }}
-                  className="item"
-                >
-                  <i className="icon image" />
-                  <span className="text">Image</span>
-                </DropDownItem>
+                <i className="icon image" />
+                <span className="text">Image</span>
+              </button>
 
-                <DropDownItem
-                  onClick={() => {
-                    showModal('Insert Table', (onClose) => (
-                      <InsertTableDialog
-                        activeEditor={activeEditor}
-                        onClose={onClose}
-                      />
-                    ));
-                  }}
-                  className="item"
-                >
-                  <i className="icon table" />
-                  <span className="text">Table</span>
-                </DropDownItem>
+              <button
+                disabled={!isEditable}
+                onClick={() =>
+                  dispatchToolbarCommand(INSERT_HORIZONTAL_RULE_COMMAND)
+                }
+                type="button"
+                title={`Horizontal Rule`}
+                aria-label={`Add Horizontal Rule`}
+                className={'toolbar-item spaced '}
+              >
+                <i className="icon horizontal-rule" />
+                <span className="text">Horizontal Rule</span>
+              </button>
 
-                <DropDownItem
-                  onClick={() => {
-                    showModal('Insert Columns Layout', (onClose) => (
-                      <InsertLayoutDialog
-                        activeEditor={activeEditor}
-                        onClose={onClose}
-                      />
-                    ));
-                  }}
-                  className="item"
-                >
-                  <i className="icon columns" />
-                  <span className="text">Columns Layout</span>
-                </DropDownItem>
-              </DropDown>
+              <button
+                disabled={!isEditable}
+                onClick={() => dispatchToolbarCommand(INSERT_PAGE_BREAK)}
+                type="button"
+                title={`Page Break`}
+                aria-label={`Add Page Break`}
+                className={'toolbar-item spaced '}
+              >
+                <i className="icon page-break" />
+                <span className="text">Page Break</span>
+              </button>
+
+              <button
+                disabled={!isEditable}
+                onClick={() => {
+                  showModal('Insert Table', (onClose) => (
+                    <InsertTableDialog
+                      activeEditor={activeEditor}
+                      onClose={onClose}
+                    />
+                  ));
+                }}
+                type="button"
+                title={`Table`}
+                aria-label={`Insert Table`}
+                className={'toolbar-item spaced '}
+              >
+                <i className="icon table" />
+                <span className="text">Table</span>
+              </button>
+
+              <button
+                disabled={!isEditable}
+                onClick={() => {
+                  showModal('Insert Columns Layout', (onClose) => (
+                    <InsertLayoutDialog
+                      activeEditor={activeEditor}
+                      onClose={onClose}
+                    />
+                  ));
+                }}
+                type="button"
+                title={`Columns Layout`}
+                aria-label={`Insert Columns Layout`}
+                className={'toolbar-item spaced '}
+              >
+                <i className="icon columns" />
+                <span className="text">Columns Layout</span>
+              </button>
             </>
           )}
         </>
