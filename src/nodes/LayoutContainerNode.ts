@@ -11,6 +11,7 @@ import type {
   DOMConversionOutput,
   DOMExportOutput,
   EditorConfig,
+  LexicalEditor,
   LexicalNode,
   LexicalUpdateJSON,
   NodeKey,
@@ -18,8 +19,8 @@ import type {
   Spread,
 } from 'lexical';
 
-import {addClassNamesToElement} from '@lexical/utils';
-import {ElementNode} from 'lexical';
+import { addClassNamesToElement } from '@lexical/utils';
+import { ElementNode } from 'lexical';
 
 export type SerializedLayoutContainerNode = Spread<
   {
@@ -37,7 +38,7 @@ function $convertLayoutContainerElement(
   );
   if (templateColumns) {
     const node = $createLayoutContainerNode(templateColumns);
-    return {node};
+    return { node };
   }
   return null;
 }
@@ -67,11 +68,18 @@ export class LayoutContainerNode extends ElementNode {
     return dom;
   }
 
-  exportDOM(): DOMExportOutput {
+  exportDOM(editor: LexicalEditor): DOMExportOutput {
     const element = document.createElement('div');
     element.style.gridTemplateColumns = this.__templateColumns;
     element.setAttribute('data-lexical-layout-container', 'true');
-    return {element};
+
+    const theme = editor._config.theme;
+
+    if (typeof theme.layoutContainer === 'string') {
+      addClassNamesToElement(element, theme.layoutContainer);
+    }
+
+    return { element };
   }
 
   updateDOM(prevNode: this, dom: HTMLElement): boolean {

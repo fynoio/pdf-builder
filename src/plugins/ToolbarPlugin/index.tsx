@@ -97,6 +97,7 @@ import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontal
 import { INSERT_PAGE_BREAK } from '../PageBreakPlugin';
 import { InsertTableDialog } from '../TablePlugin';
 import InsertLayoutDialog from '../LayoutPlugin/InsertLayoutDialog';
+import { UploadS3 } from '../../App';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const rootTypeToRootName = {
@@ -553,11 +554,13 @@ export default function ToolbarPlugin({
   activeEditor,
   setActiveEditor,
   setIsLinkEditMode,
+  uploadS3,
 }: {
   editor: LexicalEditor;
   activeEditor: LexicalEditor;
   setActiveEditor: Dispatch<LexicalEditor>;
   setIsLinkEditMode: Dispatch<boolean>;
+  uploadS3?: UploadS3;
 }): JSX.Element {
   const [selectedElementKey, setSelectedElementKey] = useState<NodeKey | null>(
     null,
@@ -1290,6 +1293,7 @@ export default function ToolbarPlugin({
                     <InsertImageDialog
                       activeEditor={activeEditor}
                       onClose={onClose}
+                      uploadS3={uploadS3}
                     />
                   ));
                 }}
