@@ -82,6 +82,7 @@ import TwitterPlugin from './plugins/TwitterPlugin';
 import { VersionsPlugin } from './plugins/VersionsPlugin';
 import YouTubePlugin from './plugins/YouTubePlugin';
 import ContentEditable from './ui/ContentEditable';
+import { UploadS3 } from './App';
 
 const COLLAB_DOC_ID = 'main';
 
@@ -91,10 +92,12 @@ const skipCollaborationInit =
 
 interface EditorProps {
   editorContainerRef: React.RefObject<HTMLDivElement | null>;
+  uploadS3?: UploadS3;
 }
 
 export default function Editor({
   editorContainerRef,
+  uploadS3,
 }: EditorProps): JSX.Element {
   const { historyState } = useSharedHistoryContext();
   const {
@@ -169,6 +172,7 @@ export default function Editor({
           activeEditor={activeEditor}
           setActiveEditor={setActiveEditor}
           setIsLinkEditMode={setIsLinkEditMode}
+          uploadS3={uploadS3}
         />
       )}
       {isRichText && (
