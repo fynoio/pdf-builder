@@ -41,10 +41,7 @@ import {
   LexicalEditor,
 } from 'lexical';
 import { useEffect, useRef, useState } from 'react';
-import * as React from 'react';
 
-import landscapeImage from '../../images/landscape.jpg';
-import yellowFlowerImage from '../../images/yellow-flower.jpg';
 import {
   $createImageNode,
   $isImageNode,
@@ -55,82 +52,119 @@ import Button from '../../ui/Button';
 import { DialogActions, DialogButtonsList } from '../../ui/Dialog';
 import FileInput from '../../ui/FileInput';
 import TextInput from '../../ui/TextInput';
+import { UploadS3 } from '../../App';
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 
 export const INSERT_IMAGE_COMMAND: LexicalCommand<InsertImagePayload> =
   createCommand('INSERT_IMAGE_COMMAND');
 
-export function InsertImageUriDialogBody({
+export function InsertImageCombinedDialogBody({
   onClick,
+  uploadS3,
 }: {
   onClick: (payload: InsertImagePayload) => void;
+  uploadS3?: UploadS3;
 }) {
   const [src, setSrc] = useState('');
   const [altText, setAltText] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false); // 👈 local state
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isDisabled = src === '';
+  const isDisabled = src === '' || isUploading;
 
-  return (
-    <>
-      <TextInput
-        label="Image URL"
-        placeholder="i.e. https://source.unsplash.com/random"
-        onChange={setSrc}
-        value={src}
-        data-test-id="image-modal-url-input"
-      />
-      <TextInput
-        label="Alt Text"
-        placeholder="Random unsplash image"
-        onChange={setAltText}
-        value={altText}
-        data-test-id="image-modal-alt-text-input"
-      />
-      <DialogActions>
-        <Button
-          data-test-id="image-modal-confirm-btn"
-          disabled={isDisabled}
-          onClick={() => onClick({ altText, src })}
-        >
-          Confirm
-        </Button>
-      </DialogActions>
-    </>
-  );
-}
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadS3) return;
 
-export function InsertImageUploadedDialogBody({
-  onClick,
-}: {
-  onClick: (payload: InsertImagePayload) => void;
-}) {
-  const [src, setSrc] = useState('');
-  const [altText, setAltText] = useState('');
-
-  const isDisabled = src === '';
-
-  const loadImage = (files: FileList | null) => {
-    const reader = new FileReader();
-    reader.onload = function () {
-      if (typeof reader.result === 'string') {
-        setSrc(reader.result);
-      }
-      return '';
-    };
-    if (files !== null) {
-      reader.readAsDataURL(files[0]);
-    }
+    setUploadError(null);
+    setIsUploading(true);
+    uploadS3.mutate(file, {
+      onSuccess: (data: any) => {
+        setSrc(data?.link);
+        setIsUploading(false);
+      },
+      onError: () => {
+        setUploadError('Upload failed. Please try again.');
+        setIsUploading(false);
+      },
+    });
   };
 
   return (
     <>
-      <FileInput
-        label="Image Upload"
-        onChange={loadImage}
-        accept="image/*"
-        data-test-id="image-modal-file-upload"
+      <TextInput
+        label="Image"
+        placeholder="Paste image URL or upload"
+        onChange={setSrc}
+        value={src}
+        data-test-id="image-modal-image-input"
+        endAdornment={
+          <button
+            title="Upload image"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: isUploading ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: isUploading ? 0.5 : 1,
+            }}
+          >
+            {isUploading ? (
+              // spinner
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ animation: 'spin 1s linear infinite' }}
+              >
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            ) : (
+              // upload icon
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            )}
+          </button>
+        }
       />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
+      {uploadError && (
+        <p style={{ color: 'red', margin: '4px 0' }}>{uploadError}</p>
+      )}
+
       <TextInput
         label="Alt Text"
         placeholder="Descriptive alternative text"
@@ -138,27 +172,28 @@ export function InsertImageUploadedDialogBody({
         value={altText}
         data-test-id="image-modal-alt-text-input"
       />
+
       <DialogActions>
         <Button
           data-test-id="image-modal-file-upload-btn"
           disabled={isDisabled}
           onClick={() => onClick({ altText, src })}
         >
-          Confirm
+          {isUploading ? 'Uploading...' : 'Confirm'}
         </Button>
       </DialogActions>
     </>
   );
 }
-
 export function InsertImageDialog({
   activeEditor,
   onClose,
+  uploadS3,
 }: {
   activeEditor: LexicalEditor;
   onClose: () => void;
+  uploadS3?: UploadS3;
 }): JSX.Element {
-  const [mode, setMode] = useState<null | 'url' | 'file'>(null);
   const hasModifier = useRef(false);
 
   useEffect(() => {
@@ -178,26 +213,7 @@ export function InsertImageDialog({
   };
 
   return (
-    <>
-      {!mode && (
-        <DialogButtonsList>
-          <Button
-            data-test-id="image-modal-option-url"
-            onClick={() => setMode('url')}
-          >
-            URL
-          </Button>
-          <Button
-            data-test-id="image-modal-option-file"
-            onClick={() => setMode('file')}
-          >
-            File
-          </Button>
-        </DialogButtonsList>
-      )}
-      {mode === 'url' && <InsertImageUriDialogBody onClick={onClick} />}
-      {mode === 'file' && <InsertImageUploadedDialogBody onClick={onClick} />}
-    </>
+    <InsertImageCombinedDialogBody onClick={onClick} uploadS3={uploadS3} />
   );
 }
 
@@ -222,7 +238,6 @@ export default function ImagesPlugin({
           if ($isRootOrShadowRoot(imageNode.getParentOrThrow())) {
             $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
           }
-
           return true;
         },
         COMMAND_PRIORITY_EDITOR,

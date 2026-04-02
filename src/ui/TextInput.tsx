@@ -6,12 +6,12 @@
  *
  */
 
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
 import './Input.css';
 
 import * as React from 'react';
-import {HTMLInputTypeAttribute} from 'react';
+import { HTMLInputTypeAttribute } from 'react';
 
 type Props = Readonly<{
   'data-test-id'?: string;
@@ -20,6 +20,7 @@ type Props = Readonly<{
   placeholder?: string;
   value: string;
   type?: HTMLInputTypeAttribute;
+  endAdornment?: JSX.Element;
 }>;
 
 export default function TextInput({
@@ -29,20 +30,32 @@ export default function TextInput({
   placeholder = '',
   'data-test-id': dataTestId,
   type = 'text',
+  endAdornment,
 }: Props): JSX.Element {
   return (
     <div className="Input__wrapper">
       <label className="Input__label">{label}</label>
-      <input
-        type={type}
-        className="Input__input"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          flex: '2 1',
+          gap: '4px',
         }}
-        data-test-id={dataTestId}
-      />
+      >
+        <input
+          type={type}
+          className="Input__input"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+          }}
+          data-test-id={dataTestId}
+        />
+        {endAdornment}
+      </div>
     </div>
   );
 }

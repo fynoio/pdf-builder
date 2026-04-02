@@ -44,6 +44,23 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 
+export type UploadS3 = {
+  mutate: (
+    file: any,
+    options?: {
+      onSuccess?: (data: any) => void;
+      onError?: (error: any) => void;
+      onSettled?: (
+        data: any,
+        error: unknown,
+        variables: void,
+        context: unknown,
+      ) => void | Promise<unknown>;
+    },
+  ) => void;
+  isLoading: boolean;
+};
+
 /**
  * Interface for the exported Ref handle.
  * Export this so it can be used in the host application for Type Safety.
@@ -61,6 +78,7 @@ export interface PlaygroundRef {
 export interface PlaygroundProps {
   initialHtml?: string;
   handleChange?: () => void;
+  uploadS3?: UploadS3;
 }
 
 interface AppProps extends PlaygroundProps {
@@ -273,6 +291,7 @@ function App({
   imperativeRef,
   initialHtml,
   handleChange,
+  uploadS3,
 }: AppProps): JSX.Element {
   const {
     settings: { isCollab, emptyEditor, measureTypingPerf },
@@ -333,7 +352,10 @@ function App({
           <TableContext>
             <ToolbarContext>
               <div className="editor-shell">
-                <Editor editorContainerRef={editorContainerRef} />
+                <Editor
+                  editorContainerRef={editorContainerRef}
+                  uploadS3={uploadS3}
+                />
               </div>
               {measureTypingPerf ? <TypingPerfPlugin /> : null}
             </ToolbarContext>
