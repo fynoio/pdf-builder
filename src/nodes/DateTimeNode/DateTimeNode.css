@@ -16,7 +16,7 @@
   padding: 0px 4px 0px 4px;
 }
 .dateTimePill.selected {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
 }
 .dateTimePill.bold {
   font-weight: bold;

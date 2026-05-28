@@ -6,13 +6,13 @@
  *
  */
 
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
 import './index.css';
 
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {useLexicalNodeSelection} from '@lexical/react/useLexicalNodeSelection';
-import {mergeRegister} from '@lexical/utils';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
+import { mergeRegister } from '@lexical/utils';
 import {
   CLICK_COMMAND,
   COMMAND_PRIORITY_HIGH,
@@ -25,11 +25,11 @@ import {
   SerializedLexicalNode,
 } from 'lexical';
 import * as React from 'react';
-import {useEffect} from 'react';
+import { useEffect } from 'react';
 
 export type SerializedPageBreakNode = SerializedLexicalNode;
 
-function PageBreakComponent({nodeKey}: {nodeKey: NodeKey}) {
+function PageBreakComponent({ nodeKey }: { nodeKey: NodeKey }) {
   const [editor] = useLexicalComposerContext();
   const [isSelected, setSelected, clearSelection] =
     useLexicalNodeSelection(nodeKey);
@@ -99,6 +99,13 @@ export class PageBreakNode extends DecoratorNode<JSX.Element> {
     const el = document.createElement('figure');
     el.style.pageBreakAfter = 'always';
     el.setAttribute('type', this.getType());
+
+    el.style.width =
+      'calc(100% + var(--page-margin-left) + var(--page-margin-right))';
+    el.style.marginLeft = 'calc(var(--page-margin-left) * -1)';
+    el.style.marginRight = 'calc(var(--page-margin-right) * -1)';
+    el.style.boxSizing = 'border-box';
+
     return el;
   }
 
@@ -120,7 +127,7 @@ export class PageBreakNode extends DecoratorNode<JSX.Element> {
 }
 
 function $convertPageBreakElement(): DOMConversionOutput {
-  return {node: $createPageBreakNode()};
+  return { node: $createPageBreakNode() };
 }
 
 export function $createPageBreakNode(): PageBreakNode {

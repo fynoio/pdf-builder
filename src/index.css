@@ -8,6 +8,8 @@
 
 @import 'https://fonts.googleapis.com/css?family=Reenie+Beanie';
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Roboto:wght@100;300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@100;400;700&display=swap');
+
 /* body {
   margin: 0;
   font-family:
@@ -50,12 +52,12 @@ header h1 {
 }
 
 .editor-shell {
-  /* margin: 20px auto; */
-  /* max-width: 1100px; */
+  max-width: calc(100vw - 778px);
+  min-width: 100%;
   border-radius: 2px;
   color: #000;
   position: relative;
-  line-height: 1.7;
+  line-height: normal;
   font-weight: 400;
   width: 100%;
 }
@@ -776,6 +778,7 @@ i.page-break,
   border-radius: 8px;
   min-height: 40px;
   background-color: #fff;
+  box-sizing: content-box;
 }
 
 .dropdown .item {
@@ -1019,7 +1022,6 @@ i.page-break,
   display: inline-block;
   position: relative;
   user-select: none;
-  overflow: hidden;
 }
 
 .editor-shell .editor-image img {
@@ -1028,7 +1030,7 @@ i.page-break,
 }
 
 .editor-shell .editor-image img.focused {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
   user-select: none;
 }
 
@@ -1111,7 +1113,7 @@ i.page-break,
   width: 7px;
   height: 7px;
   position: absolute;
-  background-color: rgb(60, 132, 244);
+  background-color: #18a5a5;
   border: 1px solid #fff;
 }
 
@@ -1447,7 +1449,7 @@ button.action-button:disabled {
 }
 
 .toolbar .toolbar-item:focus {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
 }
 
 button.toolbar-item {
@@ -1461,6 +1463,14 @@ button.toolbar-item {
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
+}
+
+button.toolbar-item i {
+  opacity: 0.6;
+}
+
+button.toolbar-item span.icon {
+  opacity: 0.6;
 }
 
 button.toolbar-item:disabled {
@@ -1489,7 +1499,7 @@ button.toolbar-item:disabled .chevron-down {
 }
 
 button.toolbar-item.active {
-  background-color: rgba(223, 232, 250, 0.3);
+  background-color: rgba(24, 165, 165, 0.16);
 }
 
 button.toolbar-item.active i {
@@ -1667,7 +1677,7 @@ button.toolbar-item.active i {
 }
 
 .excalidraw-button.selected {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
   user-select: none;
 }
 
@@ -1712,7 +1722,7 @@ button.toolbar-item.active i {
 }
 
 .editor-equation.focused {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
 }
 
 button.item i {
@@ -1720,7 +1730,7 @@ button.item i {
 }
 
 button.item.dropdown-item-active {
-  background-color: rgba(223, 232, 250, 0.3);
+  background-color: rgba(24, 165, 165, 0.16);
 }
 
 button.item.dropdown-item-active i {
@@ -1744,9 +1754,14 @@ button.item.dropdown-item-active i {
 }
 
 .dialog-dropdown {
-  background-color: #eee !important;
+  border: 1px solid #999 !important;
   margin-bottom: 10px;
   width: 100%;
+}
+
+.dialog-dropdown:hover {
+  border: 1px solid #6c6c6c !important;
+  background-color: unset !important;
 }
 
 .toolbar .block-controls {
@@ -1761,4 +1776,220 @@ button.item.dropdown-item-active i {
   text-overflow: ellipsis;
   white-space: nowrap;
   display: inline-block;
+}
+
+/* ─── Page Canvas Wrapper — centering + scroll fix ──────────────────────────
+   Replace your existing .page-canvas-wrapper and .page-canvas rules.
+
+   Key changes vs previous version:
+   - padding changed to vertical-only (top/bottom 32px, NO horizontal padding)
+     Horizontal padding on overflow:auto containers adds to scroll width even
+     when content fits, creating a spurious horizontal scrollbar.
+   - Horizontal breathing room is now provided by the canvas's computed
+     marginLeft / marginRight (set inline in Editor.tsx), which DO collapse
+     into the scroll area correctly.
+─────────────────────────────────────────────────────────────────────────── */
+
+.page-canvas-wrapper {
+  background: #f2f2f2;
+
+  /* Vertical padding only — horizontal spacing comes from canvas margins */
+  padding: 32px 0;
+
+  display: flex;
+  align-items: flex-start;
+  overflow: auto; /* scroll both axes when content overflows */
+  flex: 1;
+  box-sizing: border-box;
+  min-height: 0;
+  position: relative;
+}
+
+.page-canvas {
+  /* marginLeft / marginRight are set inline in Editor.tsx for centering */
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  align-self: flex-start;
+  transition:
+    width 300ms ease,
+    min-height 300ms ease,
+    transform 300ms ease,
+    margin-bottom 300ms ease,
+    margin-left 300ms ease,
+    margin-right 300ms ease;
+}
+
+.page-canvas .editor-container {
+  max-width: unset !important;
+  width: 100% !important;
+  height: unset !important; /* was 100% — removed */
+  min-height: unset !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.page-canvas .editor-scroller,
+.page-canvas .editor {
+  height: unset !important; /* was 100% — removed */
+  min-height: unset !important;
+  overflow: visible !important;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-size-selector select {
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* ─── Toolbar Zoom Controls (Google Docs style) ───────────────────────────── */
+
+.toolbar-zoom-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* The combo box: label area + chevron button */
+.toolbar-zoom-combo {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  min-width: 72px;
+}
+
+.toolbar-zoom-combo:hover {
+  background-color: #eee;
+}
+
+/* Clickable label (turns into input on click) */
+
+.toolbar-zoom-display {
+  flex: 1;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #777;
+  text-align: center;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 32px;
+  cursor: text;
+}
+
+/* Inline input (replaces label when editing) */
+.toolbar-zoom-input {
+  flex: 1;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 48px;
+  line-height: 32px;
+}
+
+/* Chevron toggle button */
+.toolbar-zoom-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background-color 0.1s ease;
+}
+
+.toolbar-zoom-chevron i.chevron-down {
+  display: block;
+  width: 8px;
+  height: 8px;
+  background-image: url(images/icons/chevron-down.svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Dropdown panel */
+.toolbar-zoom-dropdown {
+  position: fixed; /* ← was absolute, must be fixed for portal */
+  z-index: 1300;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  min-width: 88px;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+/* Each preset row */
+.toolbar-zoom-option {
+  display: block;
+  width: 100%;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #050505;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  white-space: nowrap;
+}
+
+.toolbar-zoom-option:hover {
+  background-color: #f1f3f4;
+}
+
+.toolbar-zoom-option--active {
+  background-color: rgba(24, 165, 165, 0.16);
+  font-weight: 600;
+}
+
+.toolbar-zoom-option--active:hover {
+  background-color: #d2e3fc;
+}
+
+/* Constrain images to their container at all times */
+.editor-image img,
+span.editor-image img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure the decorator span itself doesn't overflow */
+span.editor-image {
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* Table cells need explicit overflow control */
+.PlaygroundEditorTheme__tableCell span.editor-image,
+.PlaygroundEditorTheme__tableCell img {
+  max-width: 100%;
 }

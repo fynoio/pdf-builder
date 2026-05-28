@@ -12,7 +12,7 @@
   display: block;
   position: relative;
   outline: 0;
-  padding: 8px 46px 40px;
+  /* padding: 8px 66px 40px; */
   min-height: 150px;
 }
 @media (max-width: 1025px) {
@@ -24,13 +24,11 @@
 
 .ContentEditable__placeholder {
   font-size: 15px;
-  color: #999;
+  color: #bbb;
   overflow: hidden;
   position: absolute;
   text-overflow: ellipsis;
-  top: 8px;
-  left: 46px;
-  right: 28px;
+  top: 0;
   user-select: none;
   white-space: nowrap;
   display: inline-block;

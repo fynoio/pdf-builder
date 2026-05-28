@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
 import './index.css';
 
@@ -22,8 +22,8 @@ import {
   useFloating,
   type VirtualElement,
 } from '@floating-ui/react';
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {useLexicalEditable} from '@lexical/react/useLexicalEditable';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import {
   $computeTableMapSkipCellCheck,
   $insertTableColumnAtSelection,
@@ -34,18 +34,25 @@ import {
   $isTableRowNode,
   $moveTableColumn,
 } from '@lexical/table';
+import { $findMatchingParent } from '@lexical/utils';
 import {
   $getChildCaret,
   $getNearestNodeFromDOMNode,
+  $getSelection,
+  $isRangeSelection,
   $getSiblingCaret,
   type EditorThemeClasses,
   isHTMLElement,
 } from 'lexical';
-import {useEffect, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
-import DropDown, {DropDownItem} from '../../ui/DropDown';
-import {getThemeSelector} from '../../utils/getThemeSelector';
+import DropDown, { DropDownItem } from '../../ui/DropDown';
+import { getThemeSelector } from '../../utils/getThemeSelector';
+
+// Must match the limits defined in TablePlugin/index.tsx
+const ROW_MAX = 500;
+const COL_MAX = 30;
 
 const INDICATOR_SIZE_PX = 18;
 const SIDE_INDICATOR_SIZE_PX = 18;
@@ -60,7 +67,7 @@ function getTableFromMouseEvent(
   tableElement: HTMLTableElement | null;
 } {
   if (!isHTMLElement(event.target)) {
-    return {isOutside: true, tableElement: null};
+    return { isOutside: true, tableElement: null };
   }
 
   const cellSelector = `td${getThemeSelector(getTheme, 'tableCell')}, th${getThemeSelector(getTheme, 'tableCell')}`;
@@ -76,7 +83,7 @@ function getTableFromMouseEvent(
 function getClosestTopCellPosition(
   tableElement: HTMLTableElement,
   clientX: number,
-): {centerX: number; top: number; cell: HTMLTableCellElement} | null {
+): { centerX: number; top: number; cell: HTMLTableCellElement } | null {
   const firstRow = tableElement.rows[0];
   if (!firstRow) {
     return null;
@@ -95,7 +102,7 @@ function getClosestTopCellPosition(
     const delta = Math.abs(centerX - clientX);
     if (delta < smallestDelta) {
       smallestDelta = delta;
-      closest = {cell, centerX, top: rect.top};
+      closest = { cell, centerX, top: rect.top };
     }
   }
 
@@ -170,7 +177,7 @@ function getDropIndicatorState(
 function isColumnDrag(
   source: ElementDragPayload,
   tableKey: string | null,
-): source is ElementDragPayload & {data: ColumnDragData} {
+): source is ElementDragPayload & { data: ColumnDragData } {
   const data = source?.data as ColumnDragData | undefined;
   return data?.type === 'table-column' && data.tableKey === tableKey;
 }
@@ -184,10 +191,15 @@ function TableHoverActionsV2({
 }: {
   anchorElem: HTMLElement;
 }): JSX.Element | null {
-  const [editor, {getTheme}] = useLexicalComposerContext();
+  const [editor, { getTheme }] = useLexicalComposerContext();
   const isEditable = useLexicalEditable();
   const [isVisible, setIsVisible] = useState(false);
   const [isLeftVisible, setIsLeftVisible] = useState(false);
+
+  // Real-time row/column counts read from editor state via registerUpdateListener
+  const [currentRowCount, setCurrentRowCount] = useState(0);
+  const [currentColCount, setCurrentColCount] = useState(0);
+
   const virtualRef = useRef<VirtualElement>({
     getBoundingClientRect: () => new DOMRect(),
   });
@@ -213,12 +225,10 @@ function TableHoverActionsV2({
   const [dropIndicatorState, setDropIndicatorState] =
     useState<DropIndicatorState | null>(null);
 
-  const {refs, floatingStyles, update} = useFloating({
+  const { refs, floatingStyles, update } = useFloating({
     middleware: [
-      offset({mainAxis: -TOP_BUTTON_OVERHANG}),
-      shift({
-        padding: 8,
-      }),
+      offset({ mainAxis: -TOP_BUTTON_OVERHANG }),
+      shift({ padding: 8 }),
     ],
     placement: 'top',
     strategy: 'fixed',
@@ -231,15 +241,45 @@ function TableHoverActionsV2({
     update: updateLeft,
   } = useFloating({
     middleware: [
-      offset({mainAxis: -LEFT_BUTTON_OVERHANG}),
-      shift({
-        padding: 8,
-      }),
+      offset({ mainAxis: -LEFT_BUTTON_OVERHANG }),
+      shift({ padding: 8 }),
     ],
     placement: 'left',
     strategy: 'fixed',
     whileElementsMounted: autoUpdate,
   });
+
+  // ── Real-time table size tracking via editor state ──────────────────────────
+  // Whenever the editor state changes (row/column added or removed), re-read
+  // the row and column counts of whichever table the cursor is currently in.
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          setCurrentRowCount(0);
+          setCurrentColCount(0);
+          return;
+        }
+
+        const anchorNode = selection.anchor.getNode();
+        const tableNode = $findMatchingParent(anchorNode, $isTableNode);
+
+        if (!$isTableNode(tableNode)) {
+          setCurrentRowCount(0);
+          setCurrentColCount(0);
+          return;
+        }
+
+        const rows = tableNode.getChildren().filter($isTableRowNode);
+        const rowCount = rows.length;
+        const colCount = tableNode.getColumnCount?.() ?? 0;
+
+        setCurrentRowCount(rowCount);
+        setCurrentColCount(colCount);
+      });
+    });
+  }, [editor]);
 
   useEffect(() => {
     if (!isEditable) {
@@ -258,7 +298,10 @@ function TableHoverActionsV2({
         return;
       }
 
-      const {tableElement, isOutside} = getTableFromMouseEvent(event, getTheme);
+      const { tableElement, isOutside } = getTableFromMouseEvent(
+        event,
+        getTheme,
+      );
 
       if (
         isOutside ||
@@ -318,7 +361,7 @@ function TableHoverActionsV2({
         setIsLeftVisible(false);
         hoveredLeftCellRef.current = null;
       } else {
-        const {top, height} = hoveredCell.getBoundingClientRect();
+        const { top, height } = hoveredCell.getBoundingClientRect();
         const centerY = top + height / 2;
         hoveredLeftCellRef.current = hoveredCell;
         leftVirtualRef.current.getBoundingClientRect = () =>
@@ -387,7 +430,7 @@ function TableHoverActionsV2({
         const tableNode = $getNearestNodeFromDOMNode(hoveredTable);
         setCanReorder($isTableNode(tableNode) && $isSimpleTable(tableNode));
       },
-      {editor},
+      { editor },
     );
   }, [editor, hoveredTable]);
 
@@ -429,12 +472,12 @@ function TableHoverActionsV2({
     const tableKey = getTableKey(hoveredTable);
     const registerDropTarget = (cell: HTMLTableCellElement) =>
       dropTargetForElements({
-        canDrop: ({source}) => isColumnDrag(source, tableKey),
+        canDrop: ({ source }) => isColumnDrag(source, tableKey),
         element: cell,
-        getData: ({input}) => ({
+        getData: ({ input }) => ({
           boundaryIndex: getBoundaryIndex(cell, input.clientX),
         }),
-        onDrag: ({location, source}) => {
+        onDrag: ({ location, source }) => {
           if (!isColumnDrag(source, tableKey)) {
             return;
           }
@@ -447,7 +490,7 @@ function TableHoverActionsV2({
             getDropIndicatorState(headerRow, tableRect, boundaryIndex),
           );
         },
-        onDragEnter: ({location, source}) => {
+        onDragEnter: ({ location, source }) => {
           if (!isColumnDrag(source, tableKey)) {
             return;
           }
@@ -461,7 +504,7 @@ function TableHoverActionsV2({
           );
         },
         onDragLeave: () => setDropIndicatorState(null),
-        onDrop: ({location, source}) => {
+        onDrop: ({ location, source }) => {
           setDropIndicatorState(null);
           const data = (source?.data ?? {}) as ColumnDragData;
           if (data.columnIndex == null) {
@@ -517,6 +560,10 @@ function TableHoverActionsV2({
   if (!isEditable) {
     return null;
   }
+
+  // Hide the floating buttons once the respective limit is reached
+  const showAddColumn = isVisible && currentColCount < COL_MAX;
+  const showAddRow = isLeftVisible && currentRowCount < ROW_MAX;
 
   const handleAddColumn = () => {
     const targetCell = hoveredTopCellRef.current;
@@ -598,7 +645,7 @@ function TableHoverActionsV2({
 
         const aText = aCellValue?.cell.getTextContent() ?? '';
         const bText = bCellValue?.cell.getTextContent() ?? '';
-        const result = aText.localeCompare(bText, undefined, {numeric: true});
+        const result = aText.localeCompare(bText, undefined, { numeric: true });
         return direction === 'asc' ? -result : result;
       });
 
@@ -619,30 +666,11 @@ function TableHoverActionsV2({
         }}
         style={{
           ...floatingStyles,
-          opacity: isVisible ? 1 : 0,
+          opacity: showAddColumn ? 1 : 0,
+          pointerEvents: showAddColumn ? 'auto' : 'none',
         }}
-        className="floating-top-actions">
-        <button
-          ref={dragHandleRef}
-          className="floating-drag-indicator"
-          aria-label="Drag to reorder column"
-          type="button"
-        />
-        <DropDown
-          buttonAriaLabel="Sort column"
-          buttonClassName="floating-filter-indicator"
-          hideChevron={true}>
-          <DropDownItem
-            className="item"
-            onClick={() => handleSortColumn('desc')}>
-            Sort Ascending
-          </DropDownItem>
-          <DropDownItem
-            className="item"
-            onClick={() => handleSortColumn('asc')}>
-            Sort Descending
-          </DropDownItem>
-        </DropDown>
+        className="floating-top-actions"
+      >
         <button
           className="floating-add-indicator"
           aria-label="Add column"
@@ -657,7 +685,8 @@ function TableHoverActionsV2({
         }}
         style={{
           ...leftFloatingStyles,
-          opacity: isLeftVisible ? 1 : 0,
+          opacity: showAddRow ? 1 : 0,
+          pointerEvents: showAddRow ? 'auto' : 'none',
         }}
         className="floating-add-indicator"
         aria-label="Add row"
@@ -674,7 +703,8 @@ function TableHoverActionsV2({
             top: dropIndicatorState.top,
             width: 2,
             zIndex: 20,
-          }}>
+          }}
+        >
           <DropIndicator edge={dropIndicatorState.edge} />
         </div>
       ) : null}

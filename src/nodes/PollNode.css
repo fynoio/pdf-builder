@@ -17,7 +17,7 @@
   user-select: none;
 }
 .PollNode__container.focused {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
 }
 .PollNode__inner {
   margin: 15px;

@@ -8,6 +8,7 @@
  */
 :root {
   --lexical-indent-base-value: 40px;
+  --editor-input-padding: 0px;
 }
 .PlaygroundEditorTheme__paragraph {
   margin: 0;
@@ -199,7 +200,7 @@
   padding: 8px;
 }
 .PlaygroundEditorTheme__tableScrollableWrapper {
-  overflow-x: auto;
+  overflow-x: hidden;
   margin: 0px 0px 5px 0px;
 }
 .PlaygroundEditorTheme__tableScrollRight {
@@ -229,9 +230,9 @@
   border-collapse: collapse;
   border-spacing: 0;
   overflow-y: scroll;
-  overflow-x: scroll;
+  overflow-x: hidden;
   table-layout: fixed;
-  width: fit-content;
+  width: 100%;
   margin-top: 25px;
   margin-bottom: 30px;
 }
@@ -295,11 +296,11 @@
   background-color: transparent;
 }
 .PlaygroundEditorTheme__tableSelected {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
 }
 .PlaygroundEditorTheme__tableCell {
   border: 1px solid #bbb;
-  width: 75px;
+  /* width: 75px; */
   vertical-align: top;
   text-align: start;
   padding: 6px 8px;
@@ -401,7 +402,7 @@
   display: block;
   position: absolute;
   width: 1px;
-  background-color: rgb(60, 132, 244);
+  background-color: #18a5a5;
   height: 100%;
   top: 0;
 }
@@ -434,39 +435,39 @@
 .PlaygroundEditorTheme__ol1 {
   padding: 0;
   margin: 0;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .PlaygroundEditorTheme__ol2 {
   padding: 0;
   margin: 0;
   list-style-type: upper-alpha;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .PlaygroundEditorTheme__ol3 {
   padding: 0;
   margin: 0;
   list-style-type: lower-alpha;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .PlaygroundEditorTheme__ol4 {
   padding: 0;
   margin: 0;
   list-style-type: upper-roman;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .PlaygroundEditorTheme__ol5 {
   padding: 0;
   margin: 0;
   list-style-type: lower-roman;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .PlaygroundEditorTheme__ul {
   padding: 0;
   margin: 0;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .PlaygroundEditorTheme__listItem {
-  margin: 0 32px;
+  margin: 0 0 0 32px;
   font-family: var(--listitem-marker-font-family);
   font-size: var(--listitem-marker-font-size);
   background-color: var(--listitem-marker-background-color);
@@ -602,7 +603,7 @@
   user-select: none;
 }
 .PlaygroundEditorTheme__embedBlockFocus {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
 }
 .PlaygroundEditorTheme__layoutContainer {
   display: grid;
@@ -632,7 +633,7 @@
   line-height: 2px;
 }
 .PlaygroundEditorTheme__hr.PlaygroundEditorTheme__hrSelected {
-  outline: 2px solid rgb(60, 132, 244);
+  outline: 2px solid #18a5a5;
   user-select: none;
 }
 

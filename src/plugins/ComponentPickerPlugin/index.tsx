@@ -24,7 +24,8 @@ import {
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
 import { $setBlocksType } from '@lexical/selection';
-import { INSERT_TABLE_COMMAND } from '@lexical/table';
+import { $isTableCellNode, INSERT_TABLE_COMMAND } from '@lexical/table';
+import { $findMatchingParent } from '@lexical/utils';
 import {
   $createParagraphNode,
   $getSelection,
@@ -33,7 +34,7 @@ import {
   LexicalEditor,
   TextNode,
 } from 'lexical';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as ReactDOM from 'react-dom';
 
 import useModal from '../../hooks/useModal';
@@ -114,10 +115,19 @@ export function ComponentPickerMenuItem({
   );
 }
 
-export function getDynamicOptions(editor: LexicalEditor, queryString: string) {
+export function getDynamicOptions(
+  editor: LexicalEditor,
+  queryString: string,
+  isInsideTable: boolean,
+) {
   const options: Array<ComponentPickerOption> = [];
 
   if (queryString == null) {
+    return options;
+  }
+
+  // Do not offer NxM table insertion when already inside a table cell
+  if (isInsideTable) {
     return options;
   }
 
@@ -147,7 +157,11 @@ export function getDynamicOptions(editor: LexicalEditor, queryString: string) {
 
 export type ShowModal = ReturnType<typeof useModal>[1];
 
-export function getBaseOptions(editor: LexicalEditor, showModal: ShowModal) {
+export function getBaseOptions(
+  editor: LexicalEditor,
+  showModal: ShowModal,
+  isInsideTable: boolean,
+) {
   return [
     new ComponentPickerOption('Paragraph', {
       icon: <i className="icon paragraph" />,
@@ -216,22 +230,29 @@ export function getBaseOptions(editor: LexicalEditor, showModal: ShowModal) {
       keywords: ['page break', 'divider'],
       onSelect: () => editor.dispatchCommand(INSERT_PAGE_BREAK, undefined),
     }),
-    new ComponentPickerOption('Table', {
-      icon: <i className="icon table" />,
-      keywords: ['table', 'grid', 'spreadsheet', 'rows', 'columns'],
-      onSelect: () =>
-        showModal('Insert Table', (onClose) => (
-          <InsertTableDialog activeEditor={editor} onClose={onClose} />
-        )),
-    }),
-    new ComponentPickerOption('Columns Layout', {
-      icon: <i className="icon columns" />,
-      keywords: ['columns', 'layout', 'grid'],
-      onSelect: () =>
-        showModal('Insert Columns Layout', (onClose) => (
-          <InsertLayoutDialog activeEditor={editor} onClose={onClose} />
-        )),
-    }),
+    // Only offer Table insertion when the cursor is NOT inside a table cell
+    ...(!isInsideTable
+      ? [
+          new ComponentPickerOption('Table', {
+            icon: <i className="icon table" />,
+            keywords: ['table', 'grid', 'spreadsheet', 'rows', 'columns'],
+            onSelect: () =>
+              showModal('Insert Table', (onClose) => (
+                <InsertTableDialog activeEditor={editor} onClose={onClose} />
+              )),
+          }),
+
+          new ComponentPickerOption('Columns Layout', {
+            icon: <i className="icon columns" />,
+            keywords: ['columns', 'layout', 'grid'],
+            onSelect: () =>
+              showModal('Insert Columns Layout', (onClose) => (
+                <InsertLayoutDialog activeEditor={editor} onClose={onClose} />
+              )),
+          }),
+        ]
+      : []),
+
     ...(['left', 'center', 'right', 'justify'] as const).map(
       (alignment) =>
         new ComponentPickerOption(`Align ${alignment}`, {
@@ -248,6 +269,24 @@ export default function ComponentPickerMenuPlugin(): JSX.Element {
   const [editor] = useLexicalComposerContext();
   const [modal, showModal] = useModal();
   const [queryString, setQueryString] = useState<string | null>(null);
+  const [isInsideTable, setIsInsideTable] = useState<boolean>(false);
+
+  // Track whether the cursor is inside a table cell on every editor update
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          setIsInsideTable(false);
+          return;
+        }
+        const anchorNode = selection.anchor.getNode();
+        const insideCell =
+          $findMatchingParent(anchorNode, $isTableCellNode) !== null;
+        setIsInsideTable(insideCell);
+      });
+    });
+  }, [editor]);
 
   const checkForTriggerMatch = useBasicTypeaheadTriggerMatch('/', {
     allowWhitespace: true,
@@ -255,7 +294,7 @@ export default function ComponentPickerMenuPlugin(): JSX.Element {
   });
 
   const options = useMemo(() => {
-    const baseOptions = getBaseOptions(editor, showModal);
+    const baseOptions = getBaseOptions(editor, showModal, isInsideTable);
 
     if (!queryString) {
       return baseOptions;
@@ -264,14 +303,14 @@ export default function ComponentPickerMenuPlugin(): JSX.Element {
     const regex = new RegExp(queryString, 'i');
 
     return [
-      ...getDynamicOptions(editor, queryString),
+      ...getDynamicOptions(editor, queryString, isInsideTable),
       ...baseOptions.filter(
         (option) =>
           regex.test(option.title) ||
           option.keywords.some((keyword) => regex.test(keyword)),
       ),
     ];
-  }, [editor, queryString, showModal]);
+  }, [editor, queryString, showModal, isInsideTable]);
 
   const onSelectOption = useCallback(
     (

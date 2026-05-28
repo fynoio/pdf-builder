@@ -5,14 +5,14 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import type {TableCellNode, TableDOMCell, TableMapType} from '@lexical/table';
-import type {LexicalEditor, NodeKey} from 'lexical';
-import type {JSX} from 'react';
+import type { TableCellNode, TableDOMCell, TableMapType } from '@lexical/table';
+import type { LexicalEditor, NodeKey } from 'lexical';
+import type { JSX } from 'react';
 
 import './index.css';
 
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {useLexicalEditable} from '@lexical/react/useLexicalEditable';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useLexicalEditable } from '@lexical/react/useLexicalEditable';
 import {
   $computeTableMapSkipCellCheck,
   $getTableNodeFromLexicalNodeOrThrow,
@@ -23,7 +23,7 @@ import {
   getTableElement,
   TableNode,
 } from '@lexical/table';
-import {calculateZoomLevel, mergeRegister} from '@lexical/utils';
+import { calculateZoomLevel, mergeRegister } from '@lexical/utils';
 import {
   $getNearestNodeFromDOMNode,
   isHTMLElement,
@@ -40,7 +40,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {createPortal} from 'react-dom';
+import { createPortal } from 'react-dom';
 
 type PointerPosition = {
   x: number;
@@ -53,7 +53,7 @@ const MIN_ROW_HEIGHT = 33;
 const MIN_COLUMN_WIDTH = 92;
 const ACTIVE_RESIZER_COLOR = '#76b6ff';
 
-function TableCellResizer({editor}: {editor: LexicalEditor}): JSX.Element {
+function TableCellResizer({ editor }: { editor: LexicalEditor }): JSX.Element {
   const targetRef = useRef<HTMLElement | null>(null);
   const resizerRef = useRef<HTMLDivElement | null>(null);
   const tableRectRef = useRef<ClientRect | null>(null);
@@ -156,7 +156,7 @@ function TableCellResizer({editor}: {editor: LexicalEditor}): JSX.Element {
               tableRectRef.current = tableElement.getBoundingClientRect();
               updateActiveCell(cell);
             },
-            {editor},
+            { editor },
           );
         } else if (cell == null) {
           resetState();
@@ -248,7 +248,7 @@ function TableCellResizer({editor}: {editor: LexicalEditor}): JSX.Element {
           const newHeight = Math.max(height + heightChange, MIN_ROW_HEIGHT);
           tableRow.setHeight(newHeight);
         },
-        {tag: SKIP_SCROLL_INTO_VIEW_TAG},
+        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
       );
     },
     [activeCell, editor],
@@ -311,7 +311,7 @@ function TableCellResizer({editor}: {editor: LexicalEditor}): JSX.Element {
           newColWidths[columnIndex] = newWidth;
           tableNode.setColWidths(newColWidths);
         },
-        {tag: SKIP_SCROLL_INTO_VIEW_TAG},
+        { tag: SKIP_SCROLL_INTO_VIEW_TAG },
       );
     },
     [activeCell, editor],
@@ -328,7 +328,7 @@ function TableCellResizer({editor}: {editor: LexicalEditor}): JSX.Element {
         }
 
         if (pointerStartPosRef.current) {
-          const {x, y} = pointerStartPosRef.current;
+          const { x, y } = pointerStartPosRef.current;
 
           if (activeCell === null) {
             return;
@@ -378,7 +378,7 @@ function TableCellResizer({editor}: {editor: LexicalEditor}): JSX.Element {
 
   const getResizers = useCallback(() => {
     if (activeCell) {
-      const {height, width, top, left} =
+      const { height, width, top, left } =
         activeCell.elem.getBoundingClientRect();
       const zoom = calculateZoomLevel(activeCell.elem);
       const zoneWidth = 16; // Pixel width of the zone where you can drag the edge

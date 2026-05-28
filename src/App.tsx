@@ -44,13 +44,20 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 
+import { PageSizeProvider, usePageSize } from './context/PageSizeContext';
+
 export type UploadS3 = {
   mutate: (
     file: any,
     options?: {
       onSuccess?: (data: any) => void;
       onError?: (error: any) => void;
-      onSettled?:(data: any, error: unknown, variables: void, context: unknown) => void | Promise<unknown>
+      onSettled?: (
+        data: any,
+        error: unknown,
+        variables: void,
+        context: unknown,
+      ) => void | Promise<unknown>;
     },
   ) => void;
   isLoading: boolean;
@@ -66,6 +73,22 @@ export interface PlaygroundRef {
   getEditor: () => LexicalEditor;
 }
 
+export type PageSize = 'A4' | 'A5' | 'A6' | 'Letter' | 'Legal';
+export type PageOrientation = 'Portrait' | 'Landscape';
+export type Margins = {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+};
+
+export const DEFAULT_MARGINS: Margins = {
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0,
+};
+
 /**
  * NEW: Interface for the Component Props.
  * This tells TypeScript exactly what the Next.js app is allowed to pass in.
@@ -74,6 +97,9 @@ export interface PlaygroundProps {
   initialHtml?: string;
   handleChange?: () => void;
   uploadS3?: UploadS3;
+  pageSize?: PageSize;
+  pageOrientation?: PageOrientation;
+  margins?: Margins;
 }
 
 interface AppProps extends PlaygroundProps {
@@ -92,6 +118,7 @@ const ImperativeHandlePlugin = forwardRef<
   ImperativeHandlePluginProps
 >(({ editorContainerRef }, ref) => {
   const [editor] = useLexicalComposerContext();
+  const { pageDimensions, widthAfterMargin } = usePageSize();
 
   useImperativeHandle(ref, () => ({
     getHtml: () => {
@@ -107,22 +134,27 @@ const ImperativeHandlePlugin = forwardRef<
 
       if (!bodyHtml) return '';
 
+      const bodyWrapper = `<div style="width: ${widthAfterMargin}px; box-sizing: border-box;">${bodyHtml}</div>`;
+
       // Collect used classes
       let usedClasses: Set<string>;
+
       try {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = bodyHtml;
+
         usedClasses = new Set<string>();
+
         tempDiv.querySelectorAll('*').forEach((el: Element) => {
           el.classList.forEach((cls) => usedClasses.add(cls));
         });
       } catch {
-        // If class extraction fails, return html without styles rather than crashing
-        return bodyHtml;
+        return bodyWrapper;
       }
 
       // Build CSS only if there are classes to match
       let relevantCss = '';
+
       if (usedClasses.size > 0) {
         try {
           const seenRules = new Set<string>();
@@ -130,46 +162,58 @@ const ImperativeHandlePlugin = forwardRef<
 
           for (const sheet of Array.from(document.styleSheets)) {
             let rules: CSSRuleList;
+
             try {
               rules = sheet.cssRules;
             } catch {
-              // Cross-origin sheet — skip
               continue;
             }
 
             for (const rule of Array.from(rules)) {
               if (!(rule instanceof CSSStyleRule)) continue;
 
-              // Skip if already seen
               if (seenRules.has(rule.cssText)) continue;
 
-              // Extract class names from selector — reuse regex per rule
               const classesInSelector: string[] = [];
               const matches = rule.selectorText.matchAll(/\.([a-zA-Z0-9_-]+)/g);
+
               for (const m of matches) {
                 classesInSelector.push(m[1]);
               }
 
               if (classesInSelector.length === 0) continue;
 
-              // Check if any class is used — exit early on first match
               const isUsed = classesInSelector.some((cls) =>
                 usedClasses.has(cls),
               );
+
               if (!isUsed) continue;
 
               seenRules.add(rule.cssText);
-              cssRules.push(rule.cssText);
+
+              // Strip border properties from PlaygroundEditorTheme__layoutItem
+              let cssText = rule.cssText;
+              if (
+                classesInSelector.includes('PlaygroundEditorTheme__layoutItem')
+              ) {
+                cssText = cssText.replace(/\bborder[^;]*;/g, '');
+              }
+
+              cssRules.push(cssText);
             }
           }
 
           relevantCss = cssRules.join('\n');
         } catch {
-          // CSS extraction failed — still return html without styles
           return `<!DOCTYPE html>
 <html>
-  <head><meta charset="UTF-8" /></head>
-  <body>${bodyHtml}</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Roboto:wght@100;300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@100;400;700&display=swap" rel="stylesheet" />
+  </head>
+  <body style="margin: 0;">${bodyWrapper}</body>
 </html>`;
         }
       }
@@ -178,9 +222,22 @@ const ImperativeHandlePlugin = forwardRef<
 <html>
   <head>
     <meta charset="UTF-8" />
-    ${relevantCss ? `<style>${relevantCss}</style>` : ''}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Roboto:wght@100;300;400;500;700&family=Open+Sans:wght@300;400;500;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@100;400;700&display=swap" rel="stylesheet" />
+    <style>
+      body {
+        margin: 0;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid #ccc;
+        height: 0;
+      }
+      ${relevantCss ? `\n${relevantCss}` : ''}
+    </style>
   </head>
-  <body>${bodyHtml}</body>
+  <body>${bodyWrapper}</body>
 </html>`;
     },
 
@@ -364,11 +421,17 @@ function App({
 const PlaygroundApp = forwardRef<PlaygroundRef, PlaygroundProps>(
   (props, ref) => {
     return (
-      <SettingsContext>
-        <FlashMessageContext>
-          <App {...props} imperativeRef={ref} />
-        </FlashMessageContext>
-      </SettingsContext>
+      <PageSizeProvider
+        pageSize={props?.pageSize || 'A4'}
+        pageOrientation={props?.pageOrientation || 'Portrait'}
+        margins={props?.margins || DEFAULT_MARGINS}
+      >
+        <SettingsContext>
+          <FlashMessageContext>
+            <App {...props} imperativeRef={ref} />
+          </FlashMessageContext>
+        </SettingsContext>
+      </PageSizeProvider>
     );
   },
 );

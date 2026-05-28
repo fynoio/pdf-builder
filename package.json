@@ -1,6 +1,6 @@
 {
   "name": "@fyno/pdf-builder",
-  "version": "0.0.9",
+  "version": "0.0.15",
   "type": "module",
   "main": "./dist/index.cjs.js",
   "module": "./dist/index.es.js",
@@ -27,7 +27,8 @@
   "scripts": {
     "dev": "vite --host --port 3000",
     "build": "vite build",
-    "preview": "vite preview --port 4000 --host"
+    "preview": "vite preview --port 4000 --host",
+    "watch": "vite build --watch"
   },
   "dependencies": {
     "@atlaskit/drag-and-drop-indicator": "^0.11.1",

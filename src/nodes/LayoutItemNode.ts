@@ -9,18 +9,20 @@
 import type {
   DOMConversionMap,
   DOMConversionOutput,
+  DOMExportOutput,
   EditorConfig,
+  LexicalEditor,
   LexicalNode,
   SerializedElementNode,
 } from 'lexical';
 
-import {addClassNamesToElement} from '@lexical/utils';
-import {$isParagraphNode, ElementNode} from 'lexical';
+import { addClassNamesToElement } from '@lexical/utils';
+import { $isParagraphNode, ElementNode } from 'lexical';
 
 export type SerializedLayoutItemNode = SerializedElementNode;
 
 function $convertLayoutItemElement(): DOMConversionOutput | null {
-  return {node: $createLayoutItemNode()};
+  return { node: $createLayoutItemNode() };
 }
 
 export function $isEmptyLayoutItemNode(node: LexicalNode): boolean {
@@ -51,6 +53,16 @@ export class LayoutItemNode extends ElementNode {
 
   updateDOM(): boolean {
     return false;
+  }
+
+  exportDOM(editor: LexicalEditor): DOMExportOutput {
+    const element = document.createElement('div');
+    element.setAttribute('data-lexical-layout-item', 'true');
+    const theme = editor._config.theme;
+    if (typeof theme.layoutItem === 'string') {
+      addClassNamesToElement(element, theme.layoutItem);
+    }
+    return { element };
   }
 
   collapseAtStart(): boolean {

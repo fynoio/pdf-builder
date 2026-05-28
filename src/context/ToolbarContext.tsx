@@ -6,9 +6,9 @@
  *
  */
 
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
-import {ElementFormatType} from 'lexical';
+import { ElementFormatType } from 'lexical';
 import React, {
   createContext,
   ReactNode,
@@ -55,7 +55,7 @@ const INITIAL_TOOLBAR_STATE = {
   codeTheme: '',
   elementFormat: 'left' as ElementFormatType,
   fontColor: '#000',
-  fontFamily: 'Arial',
+  fontFamily: 'Times New Roman',
   // Current font size in px
   fontSize: `${DEFAULT_FONT_SIZE}px`,
   // Font size input value - for controlled input

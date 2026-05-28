@@ -63,7 +63,8 @@ import {
   TextFormatType,
   UNDO_COMMAND,
 } from 'lexical';
-import { Dispatch, useCallback, useEffect, useState } from 'react';
+import { Dispatch, useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useSettings } from '../../context/SettingsContext';
 import {
@@ -178,12 +179,18 @@ const CODE_THEME_OPTIONS_SHIKI: [string, string][] =
   );
 
 const FONT_FAMILY_OPTIONS: [string, string][] = [
-  ['Arial', 'Arial'],
-  ['Courier New', 'Courier New'],
-  ['Georgia', 'Georgia'],
   ['Times New Roman', 'Times New Roman'],
-  ['Trebuchet MS', 'Trebuchet MS'],
-  ['Verdana', 'Verdana'],
+  // Google Fonts
+  ['Inter', 'Inter'],
+  ['Roboto', 'Roboto'],
+  ['Open Sans', 'Open Sans'],
+  ['Lato', 'Lato'],
+  ['Montserrat', 'Montserrat'],
+  ['Poppins', 'Poppins'],
+  ['Nunito', 'Nunito'],
+  ['Merriweather', 'Merriweather'],
+  ['Playfair Display', 'Playfair Display'],
+  ['JetBrains Mono', 'JetBrains Mono'],
 ];
 
 const FONT_SIZE_OPTIONS: [string, string][] = [
@@ -247,10 +254,206 @@ function dropDownActiveClass(active: boolean) {
   }
 }
 
+// ─── Zoom Preset Options ──────────────────────────────────────────────────────
+const ZOOM_PRESETS = [
+  { label: 'Fit', value: null }, // null = fit mode
+  { label: '25%', value: 0.25 },
+  { label: '50%', value: 0.5 },
+  { label: '75%', value: 0.75 },
+  { label: '90%', value: 0.9 },
+  { label: '100%', value: 1.0 },
+  { label: '125%', value: 1.25 },
+  { label: '150%', value: 1.5 },
+  { label: '200%', value: 2.0 },
+];
+
+// ─── Zoom Controls Component ──────────────────────────────────────────────────
+function ZoomControls({
+  effectiveScale,
+  isFitMode,
+  onZoomSet,
+}: {
+  effectiveScale: number;
+  isFitMode: boolean;
+  onZoomSet: (value: number | null) => void;
+}): JSX.Element {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const comboRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const displayLabel = isFitMode
+    ? 'Fit'
+    : `${Math.round(effectiveScale * 100)}%`;
+
+  // Compute portal position from the combo box bounds — mirrors DropDown.tsx
+  const openDropdown = useCallback(() => {
+    if (comboRef.current) {
+      const { top, left, height } = comboRef.current.getBoundingClientRect();
+      setDropdownPos({ top: top + height + 4, left });
+    }
+    setIsOpen(true);
+  }, []);
+
+  // Close on outside mousedown — consistent with DropDown.tsx pointer handling
+  useEffect(() => {
+    if (!isOpen) return;
+    const handle = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        comboRef.current?.contains(target) ||
+        dropdownRef.current?.contains(target)
+      )
+        return;
+      setIsOpen(false);
+      setIsEditing(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [isOpen]);
+
+  // Reposition on scroll (capture phase catches nested scrollers) and resize
+  useEffect(() => {
+    if (!isOpen) return;
+    const handle = () => {
+      if (comboRef.current && dropdownRef.current) {
+        const { top, left, height } = comboRef.current.getBoundingClientRect();
+        dropdownRef.current.style.top = `${top + height + 4}px`;
+        dropdownRef.current.style.left = `${left}px`;
+      }
+    };
+    document.addEventListener('scroll', handle, true);
+    window.addEventListener('resize', handle);
+    return () => {
+      document.removeEventListener('scroll', handle, true);
+      window.removeEventListener('resize', handle);
+    };
+  }, [isOpen]);
+
+  const handleChevronClick = () => {
+    if (isOpen) {
+      setIsOpen(false);
+      setIsEditing(false);
+    } else {
+      openDropdown();
+    }
+  };
+
+  const handleDisplayClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setInputValue(isFitMode ? '100' : String(Math.round(effectiveScale * 100)));
+    if (!isOpen) openDropdown();
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const commitInput = (e?: React.FocusEvent<HTMLInputElement>) => {
+    // If focus is moving into the dropdown, bail — the preset onClick fires next
+    if (
+      e?.relatedTarget &&
+      dropdownRef.current?.contains(e.relatedTarget as Node)
+    ) {
+      return;
+    }
+    const raw = inputValue.replace('%', '').trim();
+    const num = parseInt(raw, 10);
+    if (!isNaN(num)) {
+      onZoomSet(Math.min(200, Math.max(25, num)) / 100);
+    }
+    setIsEditing(false);
+    setIsOpen(false);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') commitInput();
+    else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setIsOpen(false);
+    }
+  };
+
+  const handlePresetClick = (value: number | null) => {
+    onZoomSet(value);
+    setIsOpen(false);
+    setIsEditing(false);
+  };
+
+  const activeValue = isFitMode ? null : effectiveScale;
+
+  return (
+    <div className="toolbar-zoom-controls" ref={comboRef}>
+      <div
+        className={`toolbar-zoom-combo${isOpen ? ' toolbar-zoom-combo--open' : ''}`}
+      >
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            className="toolbar-zoom-input"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+            onBlur={(e) => commitInput(e)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className="toolbar-zoom-display"
+            onClick={handleDisplayClick}
+            title="Click to type a zoom level"
+          >
+            {displayLabel}
+          </span>
+        )}
+        <button
+          type="button"
+          className="toolbar-zoom-chevron"
+          onClick={handleChevronClick}
+          aria-label="Zoom options"
+          aria-expanded={isOpen}
+        >
+          <i className="chevron-down" />
+        </button>
+      </div>
+
+      {isOpen &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="toolbar-zoom-dropdown"
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+          >
+            {ZOOM_PRESETS.map((preset) => {
+              const isActive =
+                preset.value === null
+                  ? activeValue === null
+                  : activeValue !== null &&
+                    Math.round(activeValue * 100) ===
+                      Math.round(preset.value * 100);
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={`toolbar-zoom-option${isActive ? ' toolbar-zoom-option--active' : ''}`}
+                  onClick={() => handlePresetClick(preset.value)}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 function BlockFormatDropDown({
   editor,
   blockType,
-  rootType,
   disabled = false,
 }: {
   blockType: keyof typeof blockTypeToBlockName;
@@ -263,7 +466,6 @@ function BlockFormatDropDown({
       disabled={disabled}
       buttonClassName="toolbar-item block-controls"
       buttonIconClassName={'icon block-type ' + blockType}
-      // buttonLabel={blockTypeToBlockName[blockType]}
       buttonAriaLabel="Formatting options for text style"
     >
       <DropDownItem
@@ -382,9 +584,6 @@ function FontDropDown({
       disabled={disabled}
       buttonClassName={'toolbar-item ' + style}
       buttonLabel={value}
-      // buttonIconClassName={
-      //   style === 'font-family' ? 'icon block-type font-family' : ''
-      // }
       buttonAriaLabel={buttonAriaLabel}
     >
       {(style === 'font-family' ? FONT_FAMILY_OPTIONS : FONT_SIZE_OPTIONS).map(
@@ -420,7 +619,6 @@ function ElementFormatDropdown({
   return (
     <DropDown
       disabled={disabled}
-      // buttonLabel={formatOption.name}
       buttonIconClassName={`icon ${
         isRTL ? formatOption.iconRTL : formatOption.icon
       }`}
@@ -555,12 +753,18 @@ export default function ToolbarPlugin({
   setActiveEditor,
   setIsLinkEditMode,
   uploadS3,
+  effectiveScale,
+  isFitMode,
+  onZoomSet,
 }: {
   editor: LexicalEditor;
   activeEditor: LexicalEditor;
   setActiveEditor: Dispatch<LexicalEditor>;
   setIsLinkEditMode: Dispatch<boolean>;
   uploadS3?: UploadS3;
+  effectiveScale: number;
+  isFitMode: boolean;
+  onZoomSet: (value: number | null) => void;
 }): JSX.Element {
   const [selectedElementKey, setSelectedElementKey] = useState<NodeKey | null>(
     null,
@@ -578,8 +782,6 @@ export default function ToolbarPlugin({
       if (skipRefocus) {
         $addUpdateTag(SKIP_DOM_SELECTION_TAG);
       }
-
-      // Re-assert on Type so that payload can have a default param
       activeEditor.dispatchCommand(command, payload as CommandPayloadType<T>);
     });
   };
@@ -653,7 +855,6 @@ export default function ToolbarPlugin({
 
       updateToolbarState('isRTL', $isParentElementRTL(selection));
 
-      // Update links
       const node = getSelectedNode(selection);
       const parent = node.getParent();
       const isLink = $isLinkNode(parent) || $isLinkNode(node);
@@ -684,7 +885,6 @@ export default function ToolbarPlugin({
         }
       }
 
-      // Handle buttons
       updateToolbarState(
         'fontColor',
         $getSelectionStyleValueForProperty(selection, 'color', '#000'),
@@ -699,18 +899,20 @@ export default function ToolbarPlugin({
       );
       updateToolbarState(
         'fontFamily',
-        $getSelectionStyleValueForProperty(selection, 'font-family', 'Arial'),
+        $getSelectionStyleValueForProperty(
+          selection,
+          'font-family',
+          'Times New Roman',
+        ),
       );
       let matchingParent;
       if ($isLinkNode(parent)) {
-        // If node is a link, we need to fetch the parent paragraph node to set format
         matchingParent = $findMatchingParent(
           node,
           (parentNode) => $isElementNode(parentNode) && !parentNode.isInline(),
         );
       }
 
-      // If matchingParent is a valid node, pass it's format type
       updateToolbarState(
         'elementFormat',
         $isElementNode(matchingParent)
@@ -721,7 +923,6 @@ export default function ToolbarPlugin({
       );
     }
     if ($isRangeSelection(selection) || $isTableSelection(selection)) {
-      // Update text format
       updateToolbarState('isBold', selection.hasFormat('bold'));
       updateToolbarState('isItalic', selection.hasFormat('italic'));
       updateToolbarState('isUnderline', selection.hasFormat('underline'));
@@ -755,7 +956,6 @@ export default function ToolbarPlugin({
           const selectedElement = $findTopLevelElement(selectedNode);
           $handleHeadingNode(selectedElement);
           $handleCodeNode(selectedElement);
-          // Update elementFormat for node selection (e.g., images)
           if ($isElementNode(selectedElement)) {
             updateToolbarState(
               'elementFormat',
@@ -893,6 +1093,7 @@ export default function ToolbarPlugin({
     },
     [activeEditor, selectedElementKey],
   );
+
   const onCodeThemeSelect = useCallback(
     (value: string) => {
       activeEditor.update(() => {
@@ -906,15 +1107,21 @@ export default function ToolbarPlugin({
     },
     [activeEditor, selectedElementKey],
   );
-  const insertGifOnClick = (payload: InsertImagePayload) => {
-    activeEditor.dispatchCommand(INSERT_IMAGE_COMMAND, payload);
-  };
 
   const canViewerSeeInsertDropdown = !toolbarState.isImageCaption;
   const canViewerSeeInsertCodeButton = !toolbarState.isImageCaption;
 
   return (
     <div className="toolbar">
+      {/* ── Zoom controls ── */}
+      <ZoomControls
+        effectiveScale={effectiveScale}
+        isFitMode={isFitMode}
+        onZoomSet={onZoomSet}
+      />
+      <Divider />
+
+      {/* ── Undo / Redo ── */}
       <button
         disabled={!toolbarState.canUndo || !isEditable}
         onClick={(e) =>
@@ -1333,7 +1540,7 @@ export default function ToolbarPlugin({
               </button>
 
               <button
-                disabled={!isEditable}
+                disabled={!isEditable || toolbarState.rootType === 'table'}
                 onClick={() => {
                   showModal('Insert Table', (onClose) => (
                     <InsertTableDialog
@@ -1352,7 +1559,7 @@ export default function ToolbarPlugin({
               </button>
 
               <button
-                disabled={!isEditable}
+                disabled={!isEditable || toolbarState.rootType === 'table'}
                 onClick={() => {
                   showModal('Insert Columns Layout', (onClose) => (
                     <InsertLayoutDialog

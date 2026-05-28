@@ -16,16 +16,52 @@ import {
   TextNode,
 } from 'lexical';
 
-import {parseAllowedFontSize} from './plugins/ToolbarPlugin/fontSize';
-import {parseAllowedColor} from './ui/ColorPicker';
+import { parseAllowedFontSize } from './plugins/ToolbarPlugin/fontSize';
+import { parseAllowedColor } from './ui/ColorPicker';
+import { TableCellNode, TableNode } from '@lexical/table';
+
+function parseAllowedFontFamily(fontFamily: string): string {
+  const allowedFonts = [
+    'Inter',
+    'Roboto',
+    'Open Sans',
+    'Lato',
+    'Montserrat',
+    'Poppins',
+    'Nunito',
+    'Merriweather',
+    'Playfair Display',
+    'JetBrains Mono',
+    'Times New Roman',
+  ];
+
+  if (!fontFamily) {
+    return '';
+  }
+
+  const normalizedFont = fontFamily
+    .split(',')[0] // take primary font only
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '') // remove surrounding quotes
+    .replace(/\s+/g, ' '); // normalize spaces
+
+  const matchedFont = allowedFonts.find(
+    (allowedFont) => allowedFont.toLowerCase() === normalizedFont.toLowerCase(),
+  );
+
+  return matchedFont || '';
+}
 
 function getExtraStyles(element: HTMLElement): string {
   // Parse styles from pasted input, but only if they match exactly the
   // sort of styles that would be produced by exportDOM
   let extraStyles = '';
+
   const fontSize = parseAllowedFontSize(element.style.fontSize);
   const backgroundColor = parseAllowedColor(element.style.backgroundColor);
   const color = parseAllowedColor(element.style.color);
+  const fontFamily = parseAllowedFontFamily(element.style.fontFamily);
+
   if (fontSize !== '' && fontSize !== '15px') {
     extraStyles += `font-size: ${fontSize};`;
   }
@@ -35,6 +71,10 @@ function getExtraStyles(element: HTMLElement): string {
   if (color !== '' && color !== 'rgb(0, 0, 0)') {
     extraStyles += `color: ${color};`;
   }
+  if (fontFamily !== '' && fontFamily !== 'Times New Roman') {
+    extraStyles += `font-family: ${fontFamily};`;
+  }
+
   return extraStyles;
 }
 
@@ -61,9 +101,10 @@ function buildImportMap(): DOMConversionMap {
           ) {
             return output;
           }
+
           const extraStyles = getExtraStyles(element);
           if (extraStyles) {
-            const {forChild} = output;
+            const { forChild } = output;
             return {
               ...output,
               forChild: (child, parent) => {
@@ -75,6 +116,7 @@ function buildImportMap(): DOMConversionMap {
               },
             };
           }
+
           return output;
         },
       };
@@ -83,8 +125,9 @@ function buildImportMap(): DOMConversionMap {
 
   return importMap;
 }
+
 function buildExportMap(): DOMExportOutputMap {
-  return new Map([
+  const map = new Map([
     [
       ParagraphNode,
       (editor, target) => {
@@ -115,15 +158,40 @@ function buildExportMap(): DOMExportOutputMap {
                   }
                 }
               }
+              return generatedElement;
             },
           };
         }
         return output;
       },
     ],
-  ]);
+  ]) as DOMExportOutputMap;
+
+  map.set(TableCellNode, (editor, target) => {
+    const output = target.exportDOM(editor);
+    if (isHTMLElement(output.element)) {
+      const cellNode = target as TableCellNode;
+      const colIndex = cellNode.getIndexWithinParent();
+      const tableNode = cellNode.getParent()?.getParent() as TableNode;
+      const colWidths = tableNode?.getColWidths();
+
+      if (colWidths && colWidths[colIndex] !== undefined) {
+        output.element.style.width = `${colWidths[colIndex]}px`;
+      } else {
+        output.element.style.removeProperty('width');
+      }
+
+      // Ensure text wraps correctly in PDF renderers
+      output.element.style.wordBreak = 'break-word';
+      output.element.style.overflowWrap = 'break-word';
+      output.element.style.whiteSpace = 'normal';
+    }
+    return output;
+  });
+
+  return map;
 }
 
 export function buildHTMLConfig(): HTMLConfig {
-  return {export: buildExportMap(), import: buildImportMap()};
+  return { export: buildExportMap(), import: buildImportMap() };
 }

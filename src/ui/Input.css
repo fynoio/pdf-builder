@@ -30,3 +30,35 @@
   border-radius: 5px;
   min-width: 0;
 }
+
+.Input__input__with__endAdornment {
+  display: flex;
+  flex: 2;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  min-width: 0;
+  border: 0;
+}
+
+.Input__container {
+  display: flex;
+  align-items: center;
+  flex: 2;
+  font-size: 16px;
+  border-radius: 5px;
+  min-width: 0;
+}
+
+.Input__container__with__endAdornment {
+  display: flex;
+  align-items: center;
+  flex: 2;
+  border: 1px solid #999;
+  font-size: 16px;
+  border-radius: 5px;
+  min-width: 0;
+}

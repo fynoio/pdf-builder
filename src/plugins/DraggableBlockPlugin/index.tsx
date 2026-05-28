@@ -5,13 +5,13 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import type {NodeKey} from 'lexical';
-import type {JSX} from 'react';
+import type { NodeKey } from 'lexical';
+import type { JSX } from 'react';
 
 import './index.css';
 
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
-import {DraggableBlockPlugin_EXPERIMENTAL} from '@lexical/react/LexicalDraggableBlockPlugin';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { DraggableBlockPlugin_EXPERIMENTAL } from '@lexical/react/LexicalDraggableBlockPlugin';
 import {
   $createParagraphNode,
   $createTextNode,
@@ -20,7 +20,7 @@ import {
   $isParagraphNode,
   $isTextNode,
 } from 'lexical';
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactDOM from 'react-dom';
 
 import useModal from '../../hooks/useModal';
@@ -44,8 +44,10 @@ function isOnMenu(element: HTMLElement): boolean {
 
 export default function DraggableBlockPlugin({
   anchorElem = document.body,
+  scale = 1,
 }: {
   anchorElem?: HTMLElement;
+  scale?: number;
 }): JSX.Element {
   const [editor] = useLexicalComposerContext();
   const [modal, showModal] = useModal();
@@ -220,11 +222,81 @@ export default function DraggableBlockPlugin({
           }
         : null,
     );
-    setPickerState({insertBefore, targetNodeKey});
+    setPickerState({ insertBefore, targetNodeKey });
     setQueryString('');
     setHighlightedIndex(0);
     setIsPickerOpen(true);
   }
+
+  const deleteNode = useCallback(() => {
+    if (!draggableElement || !editor) {
+      return;
+    }
+
+    editor.update(() => {
+      const node = $getNearestNodeFromDOMNode(draggableElement);
+      if (!node) {
+        return;
+      }
+      node.remove();
+    });
+  }, [draggableElement, editor]);
+
+  const DRAGGABLE_MENU_GAP = 4; // gap from left edge of block
+
+  function setDraggableMenuPosition(
+    targetElem: HTMLElement | null,
+    floatingElem: HTMLElement,
+    anchorElem: HTMLElement,
+    scale: number = 1,
+  ): void {
+    if (!targetElem) {
+      floatingElem.style.opacity = '0';
+      floatingElem.style.transform = 'translate(-10000px, -10000px)';
+      return;
+    }
+
+    const targetRect = targetElem.getBoundingClientRect();
+    const floatingElemRect = floatingElem.getBoundingClientRect();
+    const anchorElementRect = anchorElem.getBoundingClientRect();
+
+    // Pin to top-left of the block, with a small left indent
+    let top = targetRect.top + DRAGGABLE_MENU_GAP;
+    let left = anchorElementRect.left + DRAGGABLE_MENU_GAP;
+
+    // Keep it from going above the anchor
+    if (top < anchorElementRect.top) {
+      top = anchorElementRect.top;
+    }
+
+    // Keep it from going below the anchor
+    if (top + floatingElemRect.height > anchorElementRect.bottom) {
+      top = anchorElementRect.bottom - floatingElemRect.height;
+    }
+
+    // Convert from visual (scaled) space to canvas local coordinate space
+    top -= anchorElementRect.top;
+    left -= anchorElementRect.left;
+
+    top /= scale;
+    left /= scale;
+
+    floatingElem.style.opacity = '1';
+    floatingElem.style.transform = `translate(${left}px, ${top}px)`;
+  }
+
+  useEffect(() => {
+    const menuEl = menuRef.current;
+    if (!menuEl || !draggableElement) {
+      if (menuEl) {
+        menuEl.style.opacity = '0';
+        menuEl.style.transform = 'translate(-10000px, -10000px)';
+      }
+      return;
+    }
+
+    setDraggableMenuPosition(draggableElement, menuEl, anchorElem, scale);
+  }, [draggableElement, anchorElem, scale]);
 
   return (
     <>
@@ -239,7 +311,8 @@ export default function DraggableBlockPlugin({
                 position: 'absolute',
                 top: pickerPosition.top,
                 zIndex: 10,
-              }}>
+              }}
+            >
               <input
                 className="component-picker-search"
                 placeholder="Filter blocks..."
@@ -272,12 +345,13 @@ export default function DraggableBlockPlugin({
         targetLineRef={targetLineRef}
         menuComponent={
           <div ref={menuRef} className="icon draggable-block-menu">
-            <button
-              title="Click to add below"
-              className="icon icon-plus"
-              onClick={openComponentPicker}
-            />
             <div className="icon" />
+
+            <button
+              title="Delete Element"
+              className="icon icon-clear"
+              onClick={deleteNode}
+            />
           </div>
         }
         targetLineComponent={
