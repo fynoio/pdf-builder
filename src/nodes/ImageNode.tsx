@@ -20,12 +20,12 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from 'lexical';
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
-import {$insertGeneratedNodes} from '@lexical/clipboard';
-import {HashtagNode} from '@lexical/hashtag';
-import {$generateHtmlFromNodes, $generateNodesFromDOM} from '@lexical/html';
-import {LinkNode} from '@lexical/link';
+import { $insertGeneratedNodes } from '@lexical/clipboard';
+import { HashtagNode } from '@lexical/hashtag';
+import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
+import { LinkNode } from '@lexical/link';
 import {
   $applyNodeReplacement,
   $createRangeSelection,
@@ -47,8 +47,8 @@ import {
 } from 'lexical';
 import * as React from 'react';
 
-import {EmojiNode} from './EmojiNode';
-import {KeywordNode} from './KeywordNode';
+import { EmojiNode } from './EmojiNode';
+import { KeywordNode } from './KeywordNode';
 
 const ImageComponent = React.lazy(() => import('./ImageComponent'));
 
@@ -79,15 +79,35 @@ function $convertImageElement(domNode: Node): null | DOMConversionOutput {
   if (!src || src.startsWith('file:///') || isGoogleDocCheckboxImg(img)) {
     return null;
   }
-  const {alt: altText, width, height} = img;
-  const node = $createImageNode({altText, height, src, width});
-  return {node};
+
+  const altText = img.alt;
+
+  // Prefer explicit width/height attributes first
+  let width: number | undefined = img.hasAttribute('width')
+    ? parseInt(img.getAttribute('width')!, 10)
+    : undefined;
+  let height: number | undefined = img.hasAttribute('height')
+    ? parseInt(img.getAttribute('height')!, 10)
+    : undefined;
+
+  // Fall back to inline style values (e.g. style="width: 351.984px; height: 198.051px")
+  if (width === undefined && img.style.width) {
+    const parsed = parseFloat(img.style.width);
+    if (!isNaN(parsed)) width = parsed;
+  }
+  if (height === undefined && img.style.height) {
+    const parsed = parseFloat(img.style.height);
+    if (!isNaN(parsed)) height = parsed;
+  }
+
+  const node = $createImageNode({ altText, height, src, width });
+  return { node };
 }
 
 export function $isCaptionEditorEmpty(): boolean {
   // Search the document for any non-element node
   // to determine if it's empty or not
-  for (const {origin} of $extendCaretToRange(
+  for (const { origin } of $extendCaretToRange(
     $getChildCaret($getRoot(), 'next'),
   )) {
     if (!$isElementNode(origin)) {
@@ -140,7 +160,8 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
   }
 
   static importJSON(serializedNode: SerializedImageNode): ImageNode {
-    const {altText, height, width, maxWidth, src, showCaption} = serializedNode;
+    const { altText, height, width, maxWidth, src, showCaption } =
+      serializedNode;
     return $createImageNode({
       altText,
       height,
@@ -153,7 +174,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
 
   updateFromJSON(serializedNode: LexicalUpdateJSON<SerializedImageNode>): this {
     const node = super.updateFromJSON(serializedNode);
-    const {caption} = serializedNode;
+    const { caption } = serializedNode;
 
     const nestedEditor = node.__caption;
     const editorState = nestedEditor.parseEditorState(caption.editorState);
@@ -167,9 +188,19 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     const imgElement = document.createElement('img');
     imgElement.setAttribute('src', this.__src);
     imgElement.setAttribute('alt', this.__altText);
-    imgElement.setAttribute('width', this.__width.toString());
-    imgElement.setAttribute('height', this.__height.toString());
 
+    // Use max-width so images are always contained within their parent
+    imgElement.style.maxWidth = '100%';
+    imgElement.style.height = 'auto';
+
+    // Only set explicit dimensions if they're not 'inherit'
+    if (this.__width !== 'inherit') {
+      imgElement.style.width = `${this.__width}px`;
+    }
+    if (this.__height !== 'inherit' && this.__width !== 'inherit') {
+      // height only makes sense alongside an explicit width
+      imgElement.style.height = `${this.__height}px`;
+    }
     if (this.__showCaption && this.__caption) {
       const captionEditor = this.__caption;
       const captionHtml = captionEditor.read(() => {
@@ -201,17 +232,17 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
         figureElement.appendChild(imgElement);
         figureElement.appendChild(figcaptionElement);
 
-        return {element: figureElement};
+        return { element: figureElement };
       }
     }
 
-    return {element: imgElement};
+    return { element: imgElement };
   }
 
   static importDOM(): DOMConversionMap | null {
     return {
       figcaption: () => ({
-        conversion: () => ({node: null}),
+        conversion: () => ({ node: null }),
         priority: 0,
       }),
       figure: () => ({
@@ -233,7 +264,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
                       );
                       $setSelection(null);
                     },
-                    {tag: SKIP_DOM_SELECTION_TAG},
+                    { tag: SKIP_DOM_SELECTION_TAG },
                   );
                 }
               }

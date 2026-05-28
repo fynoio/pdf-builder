@@ -27,6 +27,7 @@ import {
   $insertNodes,
   $isNodeSelection,
   $isRootOrShadowRoot,
+  $nodesOfType,
   $setSelection,
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_HIGH,
@@ -40,7 +41,7 @@ import {
   LexicalCommand,
   LexicalEditor,
 } from 'lexical';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import {
   $createImageNode,
@@ -49,10 +50,11 @@ import {
   ImagePayload,
 } from '../../nodes/ImageNode';
 import Button from '../../ui/Button';
-import { DialogActions, DialogButtonsList } from '../../ui/Dialog';
+import { DialogActions } from '../../ui/Dialog';
 import FileInput from '../../ui/FileInput';
 import TextInput from '../../ui/TextInput';
 import { UploadS3 } from '../../App';
+import { useState } from 'react';
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 
@@ -69,7 +71,7 @@ export function InsertImageCombinedDialogBody({
   const [src, setSrc] = useState('');
   const [altText, setAltText] = useState('');
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false); // 👈 local state
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isDisabled = src === '' || isUploading;
@@ -114,10 +116,10 @@ export function InsertImageCombinedDialogBody({
               alignItems: 'center',
               justifyContent: 'center',
               opacity: isUploading ? 0.5 : 1,
+              paddingRight: '12px',
             }}
           >
             {isUploading ? (
-              // spinner
               <svg
                 width="20"
                 height="20"
@@ -133,7 +135,6 @@ export function InsertImageCombinedDialogBody({
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
             ) : (
-              // upload icon
               <svg
                 width="20"
                 height="20"
@@ -185,6 +186,7 @@ export function InsertImageCombinedDialogBody({
     </>
   );
 }
+
 export function InsertImageDialog({
   activeEditor,
   onClose,
@@ -219,11 +221,22 @@ export function InsertImageDialog({
 
 export default function ImagesPlugin({
   captionsEnabled,
+  maxImageWidth,
 }: {
   captionsEnabled?: boolean;
+  /**
+   * The usable content width of the page canvas (pageDimensions.w minus margins).
+   * Pass this from Editor.tsx so every image created or pasted respects the
+   * current page layout, and images are clamped when the layout changes.
+   */
+  maxImageWidth?: number;
 }): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
 
+  // Keep the module-level fallback in sync so $convertImageElement
+  // (used by importDOM / paste) also respects the page canvas width.
+
+  // ── Register Lexical commands (INSERT, DRAG, DROP) ───────────────────────
   useEffect(() => {
     if (!editor.hasNodes([ImageNode])) {
       throw new Error('ImagesPlugin: ImageNode not registered on editor');
@@ -233,7 +246,12 @@ export default function ImagesPlugin({
       editor.registerCommand<InsertImagePayload>(
         INSERT_IMAGE_COMMAND,
         (payload) => {
-          const imageNode = $createImageNode(payload);
+          // Inject the current page canvas width as maxWidth so the node
+          // always knows its layout boundary from the moment it is created.
+          const imageNode = $createImageNode({
+            ...payload,
+            maxWidth: maxImageWidth ?? payload.maxWidth,
+          });
           $insertNodes([imageNode]);
           if ($isRootOrShadowRoot(imageNode.getParentOrThrow())) {
             $wrapNodeInElement(imageNode, $createParagraphNode).selectEnd();
@@ -264,10 +282,51 @@ export default function ImagesPlugin({
         COMMAND_PRIORITY_HIGH,
       ),
     );
-  }, [captionsEnabled, editor]);
+  }, [captionsEnabled, editor, maxImageWidth]);
+
+  // ── Clamp / sync all image nodes when the page layout changes ───────────
+  //    Fires whenever maxImageWidth changes (portrait ↔ landscape swap etc.)
+  useEffect(() => {
+    if (!maxImageWidth) return;
+
+    editor.update(() => {
+      const imageNodes = $nodesOfType(ImageNode);
+
+      for (const node of imageNodes) {
+        const writable = node.getWritable();
+
+        // Always keep maxWidth in sync so exportDOM's 'inherit' fallback
+        // resolves to the correct canvas width after a layout change.
+        writable.__maxWidth = maxImageWidth;
+
+        const currentWidth = node.__width;
+
+        if (currentWidth === 'inherit') {
+          // Nothing more to do — exportDOM will use the updated __maxWidth.
+          continue;
+        }
+
+        if (currentWidth > maxImageWidth) {
+          // Clamp width and scale height proportionally.
+          const currentHeight = node.__height;
+          const ratio = maxImageWidth / currentWidth;
+          const newHeight =
+            currentHeight === 'inherit'
+              ? 'inherit'
+              : Math.round(currentHeight * ratio);
+
+          writable.__width = maxImageWidth;
+          writable.__height = newHeight;
+        }
+        // If currentWidth <= maxImageWidth: image fits, leave it untouched.
+      }
+    });
+  }, [maxImageWidth, editor]);
 
   return null;
 }
+
+// ── Drag helpers ─────────────────────────────────────────────────────────────
 
 const TRANSPARENT_IMAGE =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';

@@ -7,16 +7,18 @@
  */
 
 .font-size-input {
-  font-weight: bold;
-  font-size: 14px;
   color: #777;
-  border-radius: 5px;
-  border-color: grey;
-  height: 24px;
-  width: 28px;
-  padding: 2px 4px;
   text-align: center;
+  border-style: solid;
+  border-color: #dadce0;
+  border-radius: 5px;
   align-self: center;
+  width: 28px;
+  height: 24px;
+  padding: 2px 4px;
+  font-size: 14px;
+  font-weight: 700;
+  border-width: 1px;
 }
 
 .font-size-input:disabled {
@@ -24,13 +26,13 @@
   cursor: not-allowed;
 }
 
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield;
 }
 

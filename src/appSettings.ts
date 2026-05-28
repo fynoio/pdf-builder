@@ -8,8 +8,8 @@
 
 const hostName = window.location.hostname;
 export const isDevPlayground: boolean =
-  hostName !== "playground.lexical.dev" &&
-  hostName !== "lexical-playground.vercel.app";
+  hostName !== 'playground.lexical.dev' &&
+  hostName !== 'lexical-playground.vercel.app';
 
 export const DEFAULT_SETTINGS = {
   emptyEditor: isDevPlayground,
@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS = {
   showTreeView: false,
   tableCellBackgroundColor: true,
   tableCellMerge: true,
-  tableHorizontalScroll: true,
+  tableHorizontalScroll: false,
   useCollabV2: false,
 } as const;
 

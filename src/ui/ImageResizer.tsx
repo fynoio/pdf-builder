@@ -6,12 +6,14 @@
  *
  */
 
-import type {LexicalEditor} from 'lexical';
-import type {JSX} from 'react';
+import type { LexicalEditor } from 'lexical';
+import type { JSX } from 'react';
 
-import {calculateZoomLevel} from '@lexical/utils';
+import { calculateZoomLevel } from '@lexical/utils';
 import * as React from 'react';
-import {useRef} from 'react';
+import { useRef } from 'react';
+
+import { usePageSize } from '../context/PageSizeContext';
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -36,8 +38,8 @@ export default function ImageResizer({
   captionsEnabled,
 }: {
   editor: LexicalEditor;
-  buttonRef: {current: null | HTMLButtonElement};
-  imageRef: {current: null | HTMLElement};
+  buttonRef: { current: null | HTMLButtonElement };
+  imageRef: { current: null | HTMLElement };
   maxWidth?: number;
   onResizeEnd: (width: 'inherit' | number, height: 'inherit' | number) => void;
   onResizeStart: () => void;
@@ -45,6 +47,8 @@ export default function ImageResizer({
   showCaption: boolean;
   captionsEnabled: boolean;
 }): JSX.Element {
+  const { effectiveScale } = usePageSize();
+
   const controlWrapperRef = useRef<HTMLDivElement>(null);
   const userSelect = useRef({
     priority: '',
@@ -71,16 +75,19 @@ export default function ImageResizer({
     startX: 0,
     startY: 0,
   });
+
   const editorRootElement = editor.getRootElement();
-  // Find max width, accounting for editor padding.
+
+  // getBoundingClientRect returns visual (scaled) dimensions, so divide by
+  // effectiveScale to get true DOM dimensions for maxWidth calculations.
   const maxWidthContainer = maxWidth
     ? maxWidth
     : editorRootElement !== null
-      ? editorRootElement.getBoundingClientRect().width - 20
+      ? editorRootElement.getBoundingClientRect().width / effectiveScale - 20
       : 100;
   const maxHeightContainer =
     editorRootElement !== null
-      ? editorRootElement.getBoundingClientRect().height - 20
+      ? editorRootElement.getBoundingClientRect().height / effectiveScale - 20
       : 100;
 
   const minWidth = 100;
@@ -149,8 +156,18 @@ export default function ImageResizer({
 
     if (image !== null && controlWrapper !== null) {
       event.preventDefault();
-      const {width, height} = image.getBoundingClientRect();
-      const zoom = calculateZoomLevel(image);
+
+      // calculateZoomLevel handles CSS zoom; multiply by effectiveScale to also
+      // account for the transform: scale() on the page canvas.
+      const zoom = calculateZoomLevel(image) * effectiveScale;
+
+      // getBoundingClientRect returns visual dimensions — divide by zoom to get
+      // true DOM dimensions so that startWidth/startHeight are in the same
+      // coordinate space as the diff we compute in handlePointerMove.
+      const rect = image.getBoundingClientRect();
+      const width = rect.width / zoom;
+      const height = rect.height / zoom;
+
       const positioning = positioningRef.current;
       positioning.startWidth = width;
       positioning.startHeight = height;
@@ -173,6 +190,7 @@ export default function ImageResizer({
       document.addEventListener('pointerup', handlePointerUp);
     }
   };
+
   const handlePointerMove = (event: PointerEvent) => {
     const image = imageRef.current;
     const positioning = positioningRef.current;
@@ -183,8 +201,9 @@ export default function ImageResizer({
       positioning.direction & (Direction.south | Direction.north);
 
     if (image !== null && positioning.isResizing) {
-      const zoom = calculateZoomLevel(image);
-      // Corner cursor
+      // Keep zoom consistent with handlePointerDown so diffs are in DOM space.
+      const zoom = calculateZoomLevel(image) * effectiveScale;
+
       if (isHorizontal && isVertical) {
         let diff = Math.floor(positioning.startX - event.clientX / zoom);
         diff = positioning.direction & Direction.east ? -diff : diff;
@@ -227,6 +246,7 @@ export default function ImageResizer({
       }
     }
   };
+
   const handlePointerUp = () => {
     const image = imageRef.current;
     const positioning = positioningRef.current;
@@ -252,6 +272,7 @@ export default function ImageResizer({
       document.removeEventListener('pointerup', handlePointerUp);
     }
   };
+
   return (
     <div ref={controlWrapperRef}>
       {!showCaption && captionsEnabled && (
@@ -260,7 +281,8 @@ export default function ImageResizer({
           ref={buttonRef}
           onClick={() => {
             setShowCaption(!showCaption);
-          }}>
+          }}
+        >
           Add Caption
         </button>
       )}

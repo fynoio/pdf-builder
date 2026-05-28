@@ -6,20 +6,20 @@
  *
  */
 
-import type {JSX} from 'react';
+import type { JSX } from 'react';
 
-import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   INSERT_TABLE_COMMAND,
   TableCellNode,
   TableNode,
   TableRowNode,
 } from '@lexical/table';
-import {EditorThemeClasses, Klass, LexicalEditor, LexicalNode} from 'lexical';
-import {createContext, useContext, useEffect, useMemo, useState} from 'react';
+import { EditorThemeClasses, Klass, LexicalEditor, LexicalNode } from 'lexical';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import Button from '../ui/Button';
-import {DialogActions} from '../ui/Dialog';
+import { DialogActions } from '../ui/Dialog';
 import TextInput from '../ui/TextInput';
 
 export type InsertTableCommandPayload = Readonly<{
@@ -53,7 +53,7 @@ export const CellContext = createContext<CellContextShape>({
   },
 });
 
-export function TableContext({children}: {children: JSX.Element}) {
+export function TableContext({ children }: { children: JSX.Element }) {
   const [contextValue, setContextValue] = useState<{
     cellEditorConfig: null | CellEditorConfig;
     cellEditorPlugins: null | JSX.Element | Array<JSX.Element>;
@@ -68,14 +68,40 @@ export function TableContext({children}: {children: JSX.Element}) {
           cellEditorConfig: contextValue.cellEditorConfig,
           cellEditorPlugins: contextValue.cellEditorPlugins,
           set: (cellEditorConfig, cellEditorPlugins) => {
-            setContextValue({cellEditorConfig, cellEditorPlugins});
+            setContextValue({ cellEditorConfig, cellEditorPlugins });
           },
         }),
         [contextValue.cellEditorConfig, contextValue.cellEditorPlugins],
-      )}>
+      )}
+    >
       {children}
     </CellContext.Provider>
   );
+}
+
+const ROW_MIN = 1;
+const ROW_MAX = 500;
+const COL_MIN = 1;
+const COL_MAX = 30;
+
+function getRowHelperText(value: string): string | null {
+  const num = Number(value);
+  if (value === '') return null;
+  if (isNaN(num) || !Number.isInteger(num))
+    return 'Please enter a whole number.';
+  if (num < ROW_MIN) return `Minimum number of rows is ${ROW_MIN}.`;
+  if (num > ROW_MAX) return `Maximum number of rows is ${ROW_MAX}.`;
+  return null;
+}
+
+function getColumnHelperText(value: string): string | null {
+  const num = Number(value);
+  if (value === '') return null;
+  if (isNaN(num) || !Number.isInteger(num))
+    return 'Please enter a whole number.';
+  if (num < COL_MIN) return `Minimum number of columns is ${COL_MIN}.`;
+  if (num > COL_MAX) return `Maximum number of columns is ${COL_MAX}.`;
+  return null;
 }
 
 export function InsertTableDialog({
@@ -89,10 +115,20 @@ export function InsertTableDialog({
   const [columns, setColumns] = useState('5');
   const [isDisabled, setIsDisabled] = useState(true);
 
+  const rowHelperText = getRowHelperText(rows);
+  const columnHelperText = getColumnHelperText(columns);
+
   useEffect(() => {
     const row = Number(rows);
     const column = Number(columns);
-    if (row && row > 0 && row <= 500 && column && column > 0 && column <= 50) {
+    if (
+      row &&
+      row >= ROW_MIN &&
+      row <= ROW_MAX &&
+      column &&
+      column >= COL_MIN &&
+      column <= COL_MAX
+    ) {
       setIsDisabled(false);
     } else {
       setIsDisabled(true);
@@ -111,23 +147,33 @@ export function InsertTableDialog({
   return (
     <>
       <TextInput
-        placeholder={'# of rows (1-500)'}
+        placeholder={`# of rows (${ROW_MIN}–${ROW_MAX})`}
         label="Rows"
         onChange={setRows}
         value={rows}
         data-test-id="table-modal-rows"
         type="number"
+        helperText={rowHelperText}
       />
       <TextInput
-        placeholder={'# of columns (1-50)'}
+        placeholder={`# of columns (${COL_MIN}–${COL_MAX})`}
         label="Columns"
         onChange={setColumns}
         value={columns}
         data-test-id="table-modal-columns"
         type="number"
+        helperText={columnHelperText}
       />
       <DialogActions data-test-id="table-model-confirm-insert">
-        <Button disabled={isDisabled} onClick={onClick}>
+        <Button
+          disabled={isDisabled}
+          onClick={onClick}
+          title={
+            isDisabled
+              ? `Enter rows (${ROW_MIN}–${ROW_MAX}) and columns (${COL_MIN}–${COL_MAX}) to insert a table`
+              : undefined
+          }
+        >
           Confirm
         </Button>
       </DialogActions>
